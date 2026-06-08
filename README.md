@@ -18,4 +18,4 @@ Este repositorio contiene la propuesta técnica para una aplicación web moderna
 
 ## Despliegue en cPanel
 
-Para publicar la aplicación en un hosting con cPanel, consulta `docs/cpanel-deployment.md`. Esa guía cubre requisitos del hosting, creación de base de datos MySQL, variables de entorno, configuración de **Setup Node.js App**, build de React, reglas `.htaccess` para SPA y checklist de seguridad.
+Para publicar la aplicación en un hosting con cPanel, consulta `docs/cpanel-deployment.md`. Esa guía cubre requisitos del hosting, alternativas para hosting compartido limitado, creación de base de datos MySQL, variables de entorno, configuración de **Setup Node.js App**, build de React, reglas `.htaccess` para SPA y checklist de seguridad.

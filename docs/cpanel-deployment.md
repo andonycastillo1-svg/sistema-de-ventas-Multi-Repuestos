@@ -2,6 +2,55 @@
 
 > Estado actual del repositorio: este proyecto contiene entregables de arquitectura, DDL y ejemplos clave de backend, pero todavía no incluye una aplicación Express/React completamente scaffolded y lista para producción. Para publicarla en cPanel primero se debe completar el backend ejecutable, compilar el frontend y configurar la base de datos MySQL.
 
+## 0. Si tu hosting compartido es limitado
+
+Si tu plan de hosting compartido **no tiene Setup Node.js App**, **no tiene SSH/Terminal**, **no permite procesos persistentes** o solo ofrece **Apache + PHP + MySQL**, entonces no podrás ejecutar directamente el backend Node.js/Express de esta arquitectura dentro de ese hosting. En ese escenario tienes tres caminos realistas:
+
+### Opción A: Frontend en cPanel + backend Node en un servicio externo recomendado
+
+Usa cPanel solo para servir el frontend React compilado y despliega el backend Node.js en un servicio que sí soporte procesos Node persistentes, por ejemplo un VPS, Render, Railway, Fly.io, DigitalOcean App Platform o similar.
+
+```text
+Usuario -> public_html/React en cPanel -> API Node externa -> MySQL
+```
+
+Esta opción mantiene el stack original y evita pelear con las limitaciones del hosting compartido. Debes configurar `REACT_APP_API_URL` o `VITE_API_URL` apuntando al dominio de la API externa.
+
+### Opción B: Migrar el backend a PHP si solo puedes usar PHP + MySQL
+
+Si el hosting únicamente permite PHP, el backend Express debe reescribirse como API PHP. La base de datos MySQL y el frontend React pueden conservarse, pero cambian las rutas del backend y la implementación de JWT/bcrypt/transacciones.
+
+```text
+Usuario -> public_html/React -> public_html/api PHP -> MySQL cPanel
+```
+
+Esta opción es viable en hosting compartido básico, pero ya no cumple estrictamente el requerimiento original de backend Node.js.
+
+### Opción C: Cambiar a VPS o hosting con Node.js
+
+Si necesitas mantener Node.js/Express y MySQL en el mismo servidor, lo más estable es contratar un VPS pequeño o un hosting que incluya soporte real para Node.js. En un VPS puedes instalar Node, MySQL, Nginx/Apache, SSL y ejecutar la app con PM2 o systemd.
+
+### Decisión rápida
+
+| Limitación del hosting | Qué hacer |
+|---|---|
+| Tiene **Setup Node.js App** | Puedes seguir la guía normal de cPanel. |
+| No tiene Node.js, pero sí PHP + MySQL | Usa React en `public_html` y reescribe la API en PHP. |
+| No tiene SSH, pero sí Node.js desde panel | Sube archivos por File Manager/FTP y ejecuta instalación desde la herramienta Node si existe. |
+| No permite procesos persistentes | No sirve para Express; usa API externa o VPS. |
+| MySQL está disponible solo localmente | Si la API está fuera de cPanel, pide habilitar acceso remoto MySQL o mueve también la base de datos. |
+
+### Recomendación práctica
+
+Para un hosting compartido limitado, la ruta más segura es:
+
+1. Publicar React compilado en `public_html`.
+2. Mantener MySQL en cPanel solo si permite acceso remoto seguro desde la API.
+3. Desplegar Node.js/Express en un servicio externo o VPS.
+4. Configurar CORS para aceptar únicamente el dominio del frontend.
+5. Si no puedes usar API externa ni VPS, convertir el backend a PHP.
+
+
 ## 1. Requisitos que debes confirmar con tu hosting
 
 Antes de subir archivos, valida en cPanel o con soporte técnico del proveedor:
