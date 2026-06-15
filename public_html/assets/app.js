@@ -72,7 +72,8 @@
       }
 
       if (!response.ok) {
-        throw new Error(body.message || 'Error HTTP ' + response.status);
+        var suffix = body.code ? ' (' + body.code + ')' : '';
+        throw new Error((body.message || 'Error HTTP ' + response.status) + suffix);
       }
 
       return body;

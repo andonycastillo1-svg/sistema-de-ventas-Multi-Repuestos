@@ -198,3 +198,43 @@ https://tudominio.com/api/login.php
 
 Debe responder JSON con `Método no permitido`. Si sigue diciendo `File not found`, el archivo no está en la ruta correcta o el dominio apunta a otro directorio.
 5. Pulsa **Probar conexión** otra vez. Ahora también revisa que existan `api/login.php`, `api/venta.php`, `assets/app.js` e `index.html`.
+
+
+## 10. Error `Credenciales inválidas`
+
+Si ya conecta a MySQL y `api/login.php` existe, pero el login responde `Credenciales inválidas`, normalmente ocurre una de estas cosas:
+
+- el usuario escrito no existe en la base `pmsguate_multi_repuestos`;
+- el usuario existe, pero `estado` no está en `ACTIVO`;
+- la contraseña fue guardada como texto plano y no con `password_hash`;
+- estás usando una contraseña distinta a la que quedó guardada.
+
+La respuesta puede incluir un código para diagnóstico:
+
+| Código | Significado | Solución |
+|---|---|---|
+| `USER_NOT_FOUND` | No existe el usuario o correo en la tabla `usuarios`. | Crea el usuario o revisa que estés conectado a la base correcta. |
+| `USER_INACTIVE` | El usuario existe, pero no está `ACTIVO`. | Cambia `estado` a `ACTIVO`. |
+| `PASSWORD_MISMATCH` | La contraseña no coincide con `password_hash`. | Restablece la contraseña. |
+
+### Restablecer contraseña desde navegador
+
+Se agregó una herramienta temporal:
+
+```text
+public_html/tools/reset_password.php
+```
+
+Pasos:
+
+1. Edita `public_html/tools/reset_password.php`.
+2. Cambia `SETUP_KEY` por una clave temporal segura.
+3. Abre:
+
+```text
+https://tudominio.com/tools/reset_password.php?key=TU_CLAVE_TEMPORAL
+```
+
+4. Escribe el usuario o correo existente y la nueva contraseña.
+5. La herramienta guardará la contraseña usando `password_hash` y pondrá el usuario en `ACTIVO`.
+6. Elimina `public_html/tools/reset_password.php` al terminar.

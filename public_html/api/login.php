@@ -26,8 +26,16 @@ $stmt = $pdo->prepare(
 $stmt->execute(['usuario' => $usuario]);
 $user = $stmt->fetch();
 
-if (!$user || $user['estado'] !== 'ACTIVO' || !password_verify($password, $user['password_hash'])) {
-    json_response(['message' => 'Credenciales inválidas.'], 401);
+if (!$user) {
+    json_response(['message' => 'Credenciales inválidas.', 'code' => 'USER_NOT_FOUND'], 401);
+}
+
+if ($user['estado'] !== 'ACTIVO') {
+    json_response(['message' => 'Credenciales inválidas.', 'code' => 'USER_INACTIVE'], 401);
+}
+
+if (!password_verify($password, $user['password_hash'])) {
+    json_response(['message' => 'Credenciales inválidas.', 'code' => 'PASSWORD_MISMATCH'], 401);
 }
 
 $payload = [
