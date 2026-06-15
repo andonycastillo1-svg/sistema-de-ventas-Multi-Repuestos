@@ -127,3 +127,33 @@ Si ya existe el rol `ADMIN`, usa su `id` real en `rol_id`.
 | Login dice credenciales inválidas | Contraseña no fue guardada con `password_hash` | Genera un hash bcrypt con PHP y actualiza `usuarios.password_hash`. |
 | `Token requerido` al vender | No has iniciado sesión o localStorage no tiene token | Vuelve a iniciar sesión. |
 | `Table ... doesn't exist` | No importaste `database/schema.sql` | Importa el SQL en phpMyAdmin sobre la base correcta. |
+
+
+## 7. Si el usuario existe pero no entra
+
+Para diagnosticar un login que falla aunque el usuario ya exista:
+
+1. Edita `public_html/tools/check_login.php`.
+2. Cambia `SETUP_KEY` por una clave temporal segura, igual que en `create_admin.php`.
+3. Abre:
+
+```text
+https://tudominio.com/tools/check_login.php?key=TU_CLAVE_TEMPORAL
+```
+
+4. Escribe el mismo usuario/correo y contraseña que estás usando en la pantalla de login.
+5. La herramienta revisa:
+   - si la app está conectando a la base correcta;
+   - si el usuario existe;
+   - si `estado` es `ACTIVO`;
+   - si el hash guardado parece bcrypt;
+   - si la contraseña coincide con `password_verify`.
+6. Elimina `public_html/tools/check_login.php` al terminar.
+
+Si `check_login.php` dice que el login debería funcionar pero `index.html` no entra, abre directamente:
+
+```text
+https://tudominio.com/api/login.php
+```
+
+Debe responder `Método no permitido` porque solo acepta POST. Si aparece 404, subiste los archivos en una ruta distinta o el dominio no apunta a ese `public_html`.
