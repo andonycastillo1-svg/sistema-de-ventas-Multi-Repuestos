@@ -170,3 +170,31 @@ Pasos rápidos:
 3. Abre directamente `https://tudominio.com/api/health.php`. Debe responder JSON.
 4. Abre las herramientas del navegador con F12 y revisa la pestaña **Console** y **Network**.
 5. Si el navegador cargó una versión vieja, limpia caché o usa `index.html?debug=1`.
+
+
+## 9. Error `File not found` al ingresar
+
+Si **Probar conexión** dice que MySQL conecta, pero al presionar **Entrar** aparece:
+
+```text
+La API no respondió JSON válido. Respuesta: File not found.
+```
+
+El problema no es la contraseña: el hosting no está encontrando `api/login.php`. Revisa esto:
+
+1. En el administrador de archivos de cPanel debe existir exactamente:
+
+```text
+public_html/api/login.php
+```
+
+2. El nombre debe estar en minúsculas: `login.php`, no `Login.php` ni `login.php.txt`.
+3. Sube nuevamente la carpeta completa `public_html/api/`, no solo `health.php`.
+4. Abre directamente:
+
+```text
+https://tudominio.com/api/login.php
+```
+
+Debe responder JSON con `Método no permitido`. Si sigue diciendo `File not found`, el archivo no está en la ruta correcta o el dominio apunta a otro directorio.
+5. Pulsa **Probar conexión** otra vez. Ahora también revisa que existan `api/login.php`, `api/venta.php`, `assets/app.js` e `index.html`.

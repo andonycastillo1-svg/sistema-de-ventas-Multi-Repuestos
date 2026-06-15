@@ -63,6 +63,10 @@
         try {
           body = JSON.parse(text);
         } catch (error) {
+          if (text.toLowerCase().indexOf('file not found') !== -1) {
+            throw new Error('Archivo PHP no encontrado en el hosting. Verifica que exista la ruta solicitada y sube public_html/api/login.php si estás intentando ingresar. Respuesta: ' + text.slice(0, 180));
+          }
+
           throw new Error('La API no respondió JSON válido. Respuesta: ' + text.slice(0, 180));
         }
       }
@@ -183,7 +187,21 @@
       showMessage('info', 'Probando conexión con api/health.php...');
 
       apiFetch('api/health.php').then(function (body) {
-        showMessage('success', body.message || 'API conectada.');
+        var missing = [];
+        var files = body.files || {};
+
+        Object.keys(files).forEach(function (name) {
+          if (files[name] !== 'ok') {
+            missing.push(name);
+          }
+        });
+
+        if (missing.length > 0) {
+          showMessage('warning', 'MySQL conecta, pero faltan archivos en el hosting: ' + missing.join(', '));
+          return;
+        }
+
+        showMessage('success', (body.message || 'API conectada.') + ' Archivos requeridos OK.');
       }).catch(function (error) {
         console.error(error);
         showMessage('danger', error.message || 'No se pudo probar la API.');
