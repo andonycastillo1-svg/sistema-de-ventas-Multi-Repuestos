@@ -29,7 +29,8 @@
                 <label class="form-label" for="loginPassword">Contraseña</label>
                 <input id="loginPassword" class="form-control" type="password" name="password" autocomplete="current-password" required>
               </div>
-              <button class="btn btn-primary w-100" type="submit">Entrar</button>
+              <button id="loginSubmitBtn" class="btn btn-primary w-100" type="submit">Entrar</button>
+              <button id="healthCheckBtn" class="btn btn-outline-secondary w-100 mt-2" type="button">Probar conexión</button>
             </form>
           </div>
         </div>
@@ -88,6 +89,7 @@
     <div id="message" class="alert mt-3 d-none" role="alert"></div>
   </main>
 
-  <script src="assets/app.js"></script>
+  <noscript><div class="container"><div class="alert alert-danger">Tu navegador tiene JavaScript desactivado. Actívalo para usar la app.</div></div></noscript>
+  <script src="assets/app.js?v=2"></script>
 </body>
 </html>

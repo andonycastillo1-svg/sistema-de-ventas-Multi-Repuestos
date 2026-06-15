@@ -1,119 +1,227 @@
 'use strict';
 
-var token = window.localStorage.getItem('token');
-var cart = [];
+(function () {
+  var token = window.localStorage.getItem('token');
+  var cart = [];
 
-var loginCard = document.getElementById('loginCard');
-var posCard = document.getElementById('posCard');
-var message = document.getElementById('message');
-var logoutBtn = document.getElementById('logoutBtn');
-var cartBody = document.getElementById('cartBody');
-
-function showMessage(type, text) {
-  message.className = 'alert mt-3 alert-' + type;
-  message.textContent = text;
-  message.classList.remove('d-none');
-}
-
-function setLoggedIn(isLoggedIn) {
-  loginCard.classList.toggle('d-none', isLoggedIn);
-  posCard.classList.toggle('d-none', !isLoggedIn);
-  logoutBtn.classList.toggle('d-none', !isLoggedIn);
-}
-
-function renderCart() {
-  cartBody.innerHTML = '';
-
-  cart.forEach(function (item, index) {
-    var row = document.createElement('tr');
-    row.innerHTML = '<td>' + item.productoId + '</td>' +
-      '<td class="text-end">' + item.cantidad + '</td>' +
-      '<td class="text-end"><button class="btn btn-sm btn-outline-danger" data-index="' + index + '">Quitar</button></td>';
-    cartBody.appendChild(row);
-  });
-}
-
-function apiFetch(url, options) {
-  options = options || {};
-  options.headers = options.headers || {};
-  options.headers['Content-Type'] = 'application/json';
-
-  if (token) {
-    options.headers.Authorization = 'Bearer ' + token;
+  function byId(id) {
+    return document.getElementById(id);
   }
 
-  return fetch(url, options).then(function (response) {
-    return response.json().then(function (body) {
-      if (!response.ok) {
-        throw new Error(body.message || 'Error de servidor');
+  function showMessage(type, text) {
+    var message = byId('message');
+    if (!message) {
+      window.alert(text);
+      return;
+    }
+
+    message.className = 'alert mt-3 alert-' + type;
+    message.textContent = text;
+    message.classList.remove('d-none');
+  }
+
+  function setBusy(button, busy, busyText) {
+    if (!button) {
+      return;
+    }
+
+    if (busy) {
+      button.dataset.originalText = button.textContent;
+      button.textContent = busyText;
+      button.disabled = true;
+      return;
+    }
+
+    button.textContent = button.dataset.originalText || button.textContent;
+    button.disabled = false;
+  }
+
+  function setLoggedIn(isLoggedIn) {
+    byId('loginCard').classList.toggle('d-none', isLoggedIn);
+    byId('posCard').classList.toggle('d-none', !isLoggedIn);
+    byId('logoutBtn').classList.toggle('d-none', !isLoggedIn);
+  }
+
+  function renderCart() {
+    var cartBody = byId('cartBody');
+    cartBody.innerHTML = '';
+
+    cart.forEach(function (item, index) {
+      var row = document.createElement('tr');
+      row.innerHTML = '<td>' + item.productoId + '</td>' +
+        '<td class="text-end">' + item.cantidad + '</td>' +
+        '<td class="text-end"><button class="btn btn-sm btn-outline-danger" data-index="' + index + '">Quitar</button></td>';
+      cartBody.appendChild(row);
+    });
+  }
+
+  function parseResponse(response) {
+    return response.text().then(function (text) {
+      var body = {};
+
+      if (text) {
+        try {
+          body = JSON.parse(text);
+        } catch (error) {
+          throw new Error('La API no respondió JSON válido. Respuesta: ' + text.slice(0, 180));
+        }
       }
+
+      if (!response.ok) {
+        throw new Error(body.message || 'Error HTTP ' + response.status);
+      }
+
       return body;
     });
-  });
-}
-
-document.getElementById('loginForm').addEventListener('submit', function (event) {
-  event.preventDefault();
-
-  apiFetch('api/login.php', {
-    method: 'POST',
-    body: JSON.stringify({
-      usuario: document.getElementById('loginUsuario').value,
-      password: document.getElementById('loginPassword').value
-    })
-  }).then(function (body) {
-    token = body.token;
-    window.localStorage.setItem('token', token);
-    setLoggedIn(true);
-    showMessage('success', 'Sesión iniciada.');
-  }).catch(function (error) {
-    showMessage('danger', error.message);
-  });
-});
-
-document.getElementById('addItemForm').addEventListener('submit', function (event) {
-  event.preventDefault();
-
-  cart.push({
-    productoId: Number(document.getElementById('productoId').value),
-    cantidad: Number(document.getElementById('cantidad').value)
-  });
-
-  renderCart();
-  event.target.reset();
-  document.getElementById('cantidad').value = 1;
-});
-
-cartBody.addEventListener('click', function (event) {
-  if (event.target.dataset.index) {
-    cart.splice(Number(event.target.dataset.index), 1);
-    renderCart();
   }
-});
 
-document.getElementById('clearCartBtn').addEventListener('click', function () {
-  cart = [];
-  renderCart();
-});
+  function apiFetch(url, options) {
+    options = options || {};
+    options.headers = options.headers || {};
+    options.headers['Content-Type'] = 'application/json';
+    options.headers.Accept = 'application/json';
 
-document.getElementById('emitSaleBtn').addEventListener('click', function () {
-  apiFetch('api/venta.php', {
-    method: 'POST',
-    body: JSON.stringify({ items: cart, metodoPago: 'EFECTIVO' })
-  }).then(function (body) {
-    cart = [];
+    if (token) {
+      options.headers.Authorization = 'Bearer ' + token;
+    }
+
+    return fetch(url, options).then(parseResponse).catch(function (error) {
+      if (error && error.message) {
+        throw error;
+      }
+      throw new Error('No se pudo conectar con la API. Revisa la ruta, HTTPS y permisos del hosting.');
+    });
+  }
+
+  function initLogin() {
+    byId('loginForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      var submitButton = byId('loginSubmitBtn');
+      setBusy(submitButton, true, 'Verificando...');
+      showMessage('info', 'Validando usuario y contraseña...');
+
+      apiFetch('api/login.php', {
+        method: 'POST',
+        body: JSON.stringify({
+          usuario: byId('loginUsuario').value,
+          password: byId('loginPassword').value
+        })
+      }).then(function (body) {
+        if (!body.token) {
+          throw new Error('La API respondió sin token. Revisa api/login.php.');
+        }
+
+        token = body.token;
+        window.localStorage.setItem('token', token);
+        setLoggedIn(true);
+        showMessage('success', 'Sesión iniciada correctamente.');
+      }).catch(function (error) {
+        console.error(error);
+        showMessage('danger', error.message || 'No se pudo iniciar sesión.');
+      }).finally(function () {
+        setBusy(submitButton, false);
+      });
+    });
+  }
+
+  function initCart() {
+    byId('addItemForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      cart.push({
+        productoId: Number(byId('productoId').value),
+        cantidad: Number(byId('cantidad').value)
+      });
+
+      renderCart();
+      event.target.reset();
+      byId('cantidad').value = 1;
+    });
+
+    byId('cartBody').addEventListener('click', function (event) {
+      if (event.target.dataset.index) {
+        cart.splice(Number(event.target.dataset.index), 1);
+        renderCart();
+      }
+    });
+
+    byId('clearCartBtn').addEventListener('click', function () {
+      cart = [];
+      renderCart();
+    });
+
+    byId('emitSaleBtn').addEventListener('click', function () {
+      var submitButton = byId('emitSaleBtn');
+      setBusy(submitButton, true, 'Emitiendo...');
+      showMessage('info', 'Procesando venta...');
+
+      apiFetch('api/venta.php', {
+        method: 'POST',
+        body: JSON.stringify({ items: cart, metodoPago: 'EFECTIVO' })
+      }).then(function (body) {
+        cart = [];
+        renderCart();
+        showMessage('success', 'Venta emitida: ' + body.folio + ' Total: ' + body.total);
+      }).catch(function (error) {
+        console.error(error);
+        showMessage('danger', error.message || 'No se pudo emitir la venta.');
+      }).finally(function () {
+        setBusy(submitButton, false);
+      });
+    });
+  }
+
+  function initHealthCheck() {
+    var healthBtn = byId('healthCheckBtn');
+    if (!healthBtn) {
+      return;
+    }
+
+    healthBtn.addEventListener('click', function () {
+      setBusy(healthBtn, true, 'Probando...');
+      showMessage('info', 'Probando conexión con api/health.php...');
+
+      apiFetch('api/health.php').then(function (body) {
+        showMessage('success', body.message || 'API conectada.');
+      }).catch(function (error) {
+        console.error(error);
+        showMessage('danger', error.message || 'No se pudo probar la API.');
+      }).finally(function () {
+        setBusy(healthBtn, false);
+      });
+    });
+  }
+
+  function init() {
+    window.addEventListener('error', function (event) {
+      showMessage('danger', 'Error de JavaScript: ' + event.message);
+    });
+
+    window.addEventListener('unhandledrejection', function (event) {
+      var reason = event.reason || {};
+      showMessage('danger', 'Error inesperado: ' + (reason.message || reason));
+    });
+
+    initLogin();
+    initCart();
+    initHealthCheck();
+
+    byId('logoutBtn').addEventListener('click', function () {
+      token = null;
+      window.localStorage.removeItem('token');
+      setLoggedIn(false);
+      showMessage('info', 'Sesión cerrada.');
+    });
+
+    setLoggedIn(Boolean(token));
     renderCart();
-    showMessage('success', 'Venta emitida: ' + body.folio + ' Total: ' + body.total);
-  }).catch(function (error) {
-    showMessage('danger', error.message);
-  });
-});
+    showMessage('secondary', 'Aplicación cargada. Si no puedes entrar, pulsa "Probar conexión".');
+  }
 
-logoutBtn.addEventListener('click', function () {
-  token = null;
-  window.localStorage.removeItem('token');
-  setLoggedIn(false);
-});
-
-setLoggedIn(Boolean(token));
-renderCart();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+}());

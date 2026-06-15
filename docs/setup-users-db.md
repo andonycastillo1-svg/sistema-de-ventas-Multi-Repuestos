@@ -157,3 +157,16 @@ https://tudominio.com/api/login.php
 ```
 
 Debe responder `Método no permitido` porque solo acepta POST. Si aparece 404, subiste los archivos en una ruta distinta o el dominio no apunta a ese `public_html`.
+
+
+## 8. Si al presionar Entrar no aparece ningún error
+
+Esto normalmente significa que el navegador no está cargando `assets/app.js`, la ruta `api/login.php` no responde como JSON, o el hosting está devolviendo HTML/404 en lugar de la API. La interfaz ahora muestra mensajes de estado y tiene un botón **Probar conexión** que llama a `api/health.php`.
+
+Pasos rápidos:
+
+1. Abre `https://tudominio.com/index.html`. Debe aparecer el mensaje `Aplicación cargada`.
+2. Pulsa **Probar conexión**. Si falla, revisa que `public_html/api/health.php` exista en el hosting y que `api/config.php` tenga las credenciales correctas.
+3. Abre directamente `https://tudominio.com/api/health.php`. Debe responder JSON.
+4. Abre las herramientas del navegador con F12 y revisa la pestaña **Console** y **Network**.
+5. Si el navegador cargó una versión vieja, limpia caché o usa `index.html?debug=1`.
