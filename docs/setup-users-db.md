@@ -238,3 +238,17 @@ https://tudominio.com/tools/reset_password.php?key=TU_CLAVE_TEMPORAL
 4. Escribe el usuario o correo existente y la nueva contraseña.
 5. La herramienta guardará la contraseña usando `password_hash` y pondrá el usuario en `ACTIVO`.
 6. Elimina `public_html/tools/reset_password.php` al terminar.
+
+
+### Solución directa para `PASSWORD_MISMATCH`
+
+El código `PASSWORD_MISMATCH` significa que el usuario `admin` sí existe y está activo, pero la contraseña que escribes no coincide con el valor guardado en `usuarios.password_hash`. La solución más rápida es restablecerla:
+
+1. Sube `public_html/tools/reset_password.php`.
+2. Edita `SETUP_KEY` dentro de ese archivo.
+3. Abre `https://tudominio.com/tools/reset_password.php?key=TU_CLAVE_TEMPORAL`.
+4. Escribe `admin` y define una nueva contraseña.
+5. Vuelve a entrar con esa nueva contraseña.
+6. Elimina `reset_password.php` cuando termines.
+
+No edites `password_hash` escribiendo la contraseña en texto plano en phpMyAdmin; siempre debe guardarse como hash bcrypt generado por PHP.

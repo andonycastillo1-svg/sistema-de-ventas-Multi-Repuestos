@@ -72,6 +72,18 @@
       }
 
       if (!response.ok) {
+        if (body.code === 'PASSWORD_MISMATCH') {
+          throw new Error('La contraseña no coincide con la guardada. Restablécela con public_html/tools/reset_password.php. (PASSWORD_MISMATCH)');
+        }
+
+        if (body.code === 'USER_NOT_FOUND') {
+          throw new Error('No existe ese usuario o correo en la base configurada. Crea el usuario o revisa la base de datos. (USER_NOT_FOUND)');
+        }
+
+        if (body.code === 'USER_INACTIVE') {
+          throw new Error('El usuario existe, pero está inactivo. Cambia estado a ACTIVO o usa reset_password.php. (USER_INACTIVE)');
+        }
+
         var suffix = body.code ? ' (' + body.code + ')' : '';
         throw new Error((body.message || 'Error HTTP ' + response.status) + suffix);
       }
