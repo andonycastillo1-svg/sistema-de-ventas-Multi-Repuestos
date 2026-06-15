@@ -24,3 +24,8 @@ Para publicar la aplicación en un hosting con cPanel, consulta `docs/cpanel-dep
 ## Versión simplificada para hosting compartido
 
 Si el objetivo es instalar más fácil en un cPanel limitado, usa la variante `HTML + PHP + MySQL` documentada en `docs/html-mysql-cpanel.md`. El directorio `public_html/` incluye un starter sin Node.js: `index.html`, JavaScript básico y endpoints PHP para login y emisión de ventas contra MySQL.
+
+
+## Conexión a MySQL y creación de usuarios
+
+Para conectar la aplicación a la base de datos y crear el primer usuario administrador, sigue `docs/setup-users-db.md`. También se incluye `public_html/api/health.php` para probar la conexión MySQL y `public_html/tools/create_admin.php` como herramienta temporal para crear el primer administrador desde el navegador.
