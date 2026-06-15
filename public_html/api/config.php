@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 const DB_HOST = 'localhost';
-const DB_NAME = 'cpanel_usuario_multi_repuestos';
-const DB_USER = 'cpanel_usuario_appventas';
+const DB_NAME = 'pmsguate_multi_repuestos';
+const DB_USER = 'pmsguate_appventas';
 const DB_PASS = 'CAMBIA_ESTA_PASSWORD';
 const JWT_SECRET = 'CAMBIA_ESTE_SECRETO_LARGO_Y_ALEATORIO';
 

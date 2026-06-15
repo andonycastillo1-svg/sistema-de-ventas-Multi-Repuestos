@@ -10,8 +10,8 @@ Esta guía aplica a la versión `HTML + PHP + MySQL` ubicada en `public_html/`, 
 4. Crea un usuario MySQL, por ejemplo `appventas`.
 5. Asigna ese usuario a la base de datos con permisos sobre la base.
 6. Recuerda que cPanel normalmente agrega prefijo. Por ejemplo:
-   - Base real: `usuario_multi_repuestos`
-   - Usuario real: `usuario_appventas`
+   - Base real: `pmsguate_multi_repuestos`
+   - Usuario real: `pmsguate_appventas`
 7. Abre **phpMyAdmin**.
 8. Selecciona la base de datos real.
 9. Importa `database/schema.sql`.
@@ -32,8 +32,8 @@ Edita `public_html/api/config.php` en tu hosting y cambia estos valores:
 
 ```php
 const DB_HOST = 'localhost';
-const DB_NAME = 'usuario_multi_repuestos';
-const DB_USER = 'usuario_appventas';
+const DB_NAME = 'pmsguate_multi_repuestos';
+const DB_USER = 'pmsguate_appventas';
 const DB_PASS = 'TU_PASSWORD_MYSQL';
 const JWT_SECRET = 'UN_SECRETO_LARGO_ALEATORIO';
 ```
@@ -123,7 +123,7 @@ Si ya existe el rol `ADMIN`, usa su `id` real en `rol_id`.
 | Error | Causa probable | Solución |
 |---|---|---|
 | `Access denied for user` | Usuario o contraseña MySQL incorrectos | Revisa `DB_USER`, `DB_PASS` y permisos en cPanel. |
-| `Unknown database` | Nombre de base sin prefijo cPanel | Usa el nombre completo, por ejemplo `usuario_multi_repuestos`. |
+| `Unknown database` | Nombre de base sin prefijo cPanel | Usa el nombre completo, por ejemplo `pmsguate_multi_repuestos`. |
 | Login dice credenciales inválidas | Contraseña no fue guardada con `password_hash` | Genera un hash bcrypt con PHP y actualiza `usuarios.password_hash`. |
 | `Token requerido` al vender | No has iniciado sesión o localStorage no tiene token | Vuelve a iniciar sesión. |
 | `Table ... doesn't exist` | No importaste `database/schema.sql` | Importa el SQL en phpMyAdmin sobre la base correcta. |

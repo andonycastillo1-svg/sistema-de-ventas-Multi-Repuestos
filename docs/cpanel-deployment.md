@@ -88,8 +88,8 @@ En ese segundo escenario, React consume la API usando `https://api.midominio.com
 ## 3. Crear la base de datos MySQL
 
 1. En cPanel entra a **MySQL Databases**.
-2. Crea una base de datos, por ejemplo `usuario_multi_repuestos`.
-3. Crea un usuario MySQL, por ejemplo `usuario_appventas`.
+2. Crea una base de datos, por ejemplo `pmsguate_multi_repuestos`.
+3. Crea un usuario MySQL, por ejemplo `pmsguate_appventas`.
 4. Asigna permisos al usuario sobre la base de datos.
 5. Abre **phpMyAdmin** y ejecuta el DDL de `database/schema.sql`.
 
@@ -103,7 +103,7 @@ CREATE DATABASE IF NOT EXISTS multi_repuestos
 USE multi_repuestos;
 ```
 
-En hosting compartido normalmente cPanel prefija los nombres con tu usuario, por ejemplo `usuario_multi_repuestos`.
+En hosting compartido normalmente cPanel prefija los nombres con tu usuario, por ejemplo `pmsguate_multi_repuestos`.
 
 ## 4. Variables de entorno del backend
 
@@ -115,8 +115,8 @@ PORT=3000
 
 DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=usuario_multi_repuestos
-DB_USER=usuario_appventas
+DB_NAME=pmsguate_multi_repuestos
+DB_USER=pmsguate_appventas
 DB_PASSWORD=CAMBIA_ESTA_PASSWORD
 
 JWT_SECRET=CAMBIA_ESTE_SECRETO_LARGO_Y_ALEATORIO
