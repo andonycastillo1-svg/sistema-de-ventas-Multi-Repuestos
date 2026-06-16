@@ -453,7 +453,7 @@
         showMessage('success', body.message || 'Usuario creado.');
         event.target.reset();
       }).catch(function (error) {
-        showMessage('danger', error.message);
+        showMessage('danger', error.message + ' | Si persiste, abre api/usuarios.php en Network para ver detalle.');
       });
     });
 

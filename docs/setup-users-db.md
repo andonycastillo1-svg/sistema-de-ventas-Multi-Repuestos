@@ -437,3 +437,22 @@ En el menú principal entra a **Inventario** y usa los filtros:
 - Todos;
 - Bajo mínimo;
 - Sin stock.
+
+
+## 18. Error HTTP 500 al crear usuarios
+
+Se reforzó `api/usuarios.php` para devolver el detalle del error en JSON y evitar una pantalla genérica `Error HTTP 500`. Si no puedes crear usuarios:
+
+1. Sube:
+
+```text
+public_html/api/usuarios.php
+public_html/assets/app.js
+public_html/index.html
+```
+
+2. Limpia caché del navegador o abre `index.html?v=9`.
+3. Intenta crear el usuario otra vez.
+4. Si falla, el mensaje ahora debe indicar si el usuario/correo ya existe, si el rol es inválido o si MySQL devolvió otro error.
+
+Recuerda que los roles permitidos son únicamente `ADMINISTRADOR` y `VENDEDOR`.
