@@ -411,3 +411,29 @@ public_html/api/compras.php
 public_html/index.html
 public_html/assets/app.js
 ```
+
+
+## 17. Módulo de inventario, existencias y alertas
+
+Se agregó un módulo separado de **Inventario** para revisar:
+
+- existencias actuales por producto/repuesto;
+- productos bajo stock mínimo;
+- productos sin existencia;
+- ubicación en bodega;
+- aplicación del repuesto por vehículo.
+
+Sube estos archivos:
+
+```text
+public_html/api/inventario.php
+public_html/api/health.php
+public_html/index.html
+public_html/assets/app.js
+```
+
+En el menú principal entra a **Inventario** y usa los filtros:
+
+- Todos;
+- Bajo mínimo;
+- Sin stock.

@@ -358,6 +358,28 @@
     return { id: Number(match[1]), label: selected };
   }
 
+
+  function loadInventory(filter) {
+    filter = filter || 'todos';
+    return apiFetch('api/inventario.php?filtro=' + encodeURIComponent(filter)).then(function (body) {
+      var summary = body.resumen || {};
+      var summaryTarget = byId('inventorySummary');
+      var tbody = byId('inventoryBody');
+
+      if (summaryTarget) {
+        summaryTarget.textContent = 'Total productos: ' + (summary.total_productos || 0) + ' | Bajo mínimo: ' + (summary.bajo_minimo || 0) + ' | Sin stock: ' + (summary.sin_stock || 0);
+      }
+
+      if (tbody) {
+        tbody.innerHTML = (body.productos || []).map(function (p) {
+          var badge = p.alerta === 'SIN_STOCK' ? 'danger' : (p.alerta === 'BAJO_MINIMO' ? 'warning' : 'success');
+          var vehicle = [p.marca_vehiculo, p.modelo_vehiculo, p.anio_inicio && p.anio_fin ? p.anio_inicio + '-' + p.anio_fin : '', p.motor].filter(Boolean).join(' ');
+          return '<tr><td>#' + p.id + ' ' + p.sku + ' - ' + p.nombre + '</td><td>' + vehicle + '</td><td>' + (p.ubicacion || '') + '</td><td class="text-end">' + p.stock_actual + '</td><td class="text-end">' + p.stock_minimo + '</td><td><span class="badge text-bg-' + badge + '">' + p.alerta + '</span></td></tr>';
+        }).join('');
+      }
+    });
+  }
+
   function initBusinessModules() {
     byId('productForm').addEventListener('submit', function (event) {
       event.preventDefault();
@@ -462,6 +484,14 @@
       });
     });
 
+    Array.prototype.forEach.call(document.querySelectorAll('.inventory-filter'), function (button) {
+      button.addEventListener('click', function () {
+        loadInventory(button.dataset.filter).catch(function (error) {
+          showMessage('danger', error.message);
+        });
+      });
+    });
+
     byId('reportForm').addEventListener('submit', function (event) {
       event.preventDefault();
       var data = formToObject(event.target);
@@ -523,6 +553,7 @@
       loadProducts().catch(function () {});
       loadPurchases().catch(function () {});
       loadBanks().catch(function () {});
+      loadInventory().catch(function () {});
     }
     showMessage('secondary', 'Aplicación cargada. Si no puedes entrar, pulsa "Probar conexión".');
   }

@@ -15,6 +15,7 @@ try {
         'api/venta.php' => __DIR__ . '/venta.php',
         'api/productos.php' => __DIR__ . '/productos.php',
         'api/compras.php' => __DIR__ . '/compras.php',
+        'api/inventario.php' => __DIR__ . '/inventario.php',
         'api/usuarios.php' => __DIR__ . '/usuarios.php',
         'api/reportes.php' => __DIR__ . '/reportes.php',
         'api/bancos.php' => __DIR__ . '/bancos.php',
