@@ -473,3 +473,16 @@ const REQUIRE_TOKEN_TO_CREATE_USERS = true;
 ```
 
 Si todavía ves el campo de rol como texto en lugar de selector, te falta subir `public_html/index.html` actualizado o limpiar caché del navegador.
+
+
+## 20. PASSWORD_MISMATCH con un usuario recién creado
+
+Si un usuario recién creado no puede entrar y aparece `PASSWORD_MISMATCH`, restablece la contraseña de ese usuario:
+
+```text
+https://tudominio.com/SistemadeVentas/public_html/tools/reset_password.php?key=123321
+```
+
+Escribe el usuario exacto, por ejemplo `csamayoa`, y una nueva contraseña. Luego vuelve al login.
+
+También se ajustó el sistema para limpiar espacios al inicio/final de las contraseñas al crear, diagnosticar, restablecer e iniciar sesión.

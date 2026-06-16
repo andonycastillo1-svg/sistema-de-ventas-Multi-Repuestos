@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $usuario = trim((string) ($_POST['usuario'] ?? ''));
-$password = (string) ($_POST['password'] ?? '');
+$password = trim((string) ($_POST['password'] ?? ''));
 
 if ($usuario === '' || $password === '') {
     json_response(['message' => 'Usuario/correo y contraseña son requeridos.'], 400);

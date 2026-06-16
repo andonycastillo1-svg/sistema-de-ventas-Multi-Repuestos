@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $usuario = trim((string) ($_POST['usuario'] ?? ''));
 $email = trim((string) ($_POST['email'] ?? ''));
 $nombre = trim((string) ($_POST['nombre'] ?? ''));
-$password = (string) ($_POST['password'] ?? '');
+$password = trim((string) ($_POST['password'] ?? ''));
 
 if ($usuario === '' || $email === '' || $nombre === '' || strlen($password) < 8) {
     json_response(['message' => 'Completa usuario, correo, nombre y contraseña de al menos 8 caracteres.'], 400);

@@ -99,7 +99,7 @@
 
       if (!response.ok) {
         if (body.code === 'PASSWORD_MISMATCH') {
-          throw new Error('La contraseña no coincide con la guardada. Restablécela con public_html/tools/reset_password.php. (PASSWORD_MISMATCH)');
+          throw new Error('La contraseña no coincide con la guardada. Abre tools/reset_password.php?key=123321, restablece la contraseña de este usuario y vuelve a intentar. (PASSWORD_MISMATCH)');
         }
 
         if (body.code === 'USER_NOT_FOUND') {

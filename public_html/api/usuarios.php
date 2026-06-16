@@ -35,7 +35,7 @@ try {
     $usuario = trim((string) ($data['usuario'] ?? ''));
     $email = trim((string) ($data['email'] ?? ''));
     $nombre = trim((string) ($data['nombre'] ?? ''));
-    $password = (string) ($data['password'] ?? '');
+    $password = trim((string) ($data['password'] ?? ''));
     $rolEntrada = strtoupper(trim((string) ($data['rol'] ?? 'VENDEDOR')));
     $mapRoles = [
         'ADMIN' => 'ADMINISTRADOR',
