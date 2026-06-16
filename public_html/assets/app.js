@@ -533,6 +533,120 @@
     });
   }
 
+  var dashCharts = {};
+
+  function fmt(value) {
+    return 'Q ' + Number(value || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function renderDashboard(data) {
+    // KPI hoy
+    byId('kpiVentasHoy').textContent = fmt(data.hoy.total);
+    byId('kpiVentasHoyCant').textContent = data.hoy.cantidad + ' ventas';
+
+    // KPI mes
+    byId('kpiVentasMes').textContent = fmt(data.mes.total);
+    byId('kpiVentasMesCant').textContent = data.mes.cantidad + ' ventas | Desc.: ' + fmt(data.mes.descuentos);
+
+    // KPI mes anterior
+    var totalMes = Number(data.mes.total || 0);
+    var totalAnt = Number(data.mes_anterior.total || 0);
+    byId('kpiMesAnterior').textContent = fmt(totalAnt);
+    var diff = totalAnt > 0 ? ((totalMes - totalAnt) / totalAnt * 100).toFixed(1) : null;
+    var diffEl = byId('kpiMesAnteriorDiff');
+    if (diff !== null) {
+      diffEl.textContent = (diff >= 0 ? '▲ +' : '▼ ') + diff + '% vs mes ant.';
+      diffEl.style.color = diff >= 0 ? '#198754' : '#dc3545';
+    } else {
+      diffEl.textContent = 'Sin datos mes anterior';
+    }
+
+    // KPI alertas
+    var sinStock = Number(data.inventario.sin_stock || 0);
+    var bajoMin = Number(data.inventario.bajo_minimo || 0);
+    byId('kpiAlertas').textContent = sinStock + bajoMin;
+    byId('kpiAlertasSub').textContent = sinStock + ' sin stock · ' + bajoMin + ' bajo mínimo';
+
+    // Gráfica 7 días
+    var dias = [];
+    var totalesDias = [];
+    var cantidadesDias = [];
+    // Rellenar los 7 días aunque no haya ventas
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date();
+      d.setDate(d.getDate() - i);
+      var key = d.toISOString().slice(0, 10);
+      dias.push(key.slice(5)); // MM-DD
+      var found = (data.ultimos_7_dias || []).find(function (r) { return r.dia === key; });
+      totalesDias.push(found ? Number(found.total) : 0);
+      cantidadesDias.push(found ? Number(found.cantidad) : 0);
+    }
+
+    var ctx7 = byId('chartVentas7Dias').getContext('2d');
+    if (dashCharts.ventas7) { dashCharts.ventas7.destroy(); }
+    dashCharts.ventas7 = new Chart(ctx7, {
+      type: 'bar',
+      data: {
+        labels: dias,
+        datasets: [
+          { label: 'Total vendido (Q)', data: totalesDias, backgroundColor: 'rgba(13,110,253,.7)', borderRadius: 4, yAxisID: 'y' },
+          { label: 'Cant. ventas', data: cantidadesDias, type: 'line', borderColor: '#198754', backgroundColor: 'rgba(25,135,84,.15)', tension: .3, yAxisID: 'y1' }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: function (v) { return 'Q' + v.toLocaleString('es-GT'); } } },
+          y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } }
+        },
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+
+    // Gráfica método de pago (doughnut)
+    var ctxPago = byId('chartMetodoPago').getContext('2d');
+    if (dashCharts.metodo) { dashCharts.metodo.destroy(); }
+    var metodos = (data.por_metodo_pago || []);
+    dashCharts.metodo = new Chart(ctxPago, {
+      type: 'doughnut',
+      data: {
+        labels: metodos.map(function (m) { return m.metodo_pago; }),
+        datasets: [{ data: metodos.map(function (m) { return Number(m.total); }), backgroundColor: ['#0d6efd','#198754','#ffc107','#dc3545','#6f42c1','#0dcaf0'] }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Top productos
+    var tbody = byId('dashTopProductos');
+    if (!data.top_productos || !data.top_productos.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Sin ventas este mes</td></tr>';
+    } else {
+      tbody.innerHTML = data.top_productos.map(function (p, i) {
+        return '<tr><td><span class="badge bg-secondary me-1">' + (i + 1) + '</span>' + p.nombre + '<br><small class="text-muted">' + p.sku + '</small></td><td class="text-end">' + Number(p.unidades).toLocaleString('es-GT') + '</td><td class="text-end">' + fmt(p.total) + '</td></tr>';
+      }).join('');
+    }
+
+    // Últimas ventas
+    var tbodyV = byId('dashUltimasVentas');
+    if (!data.ultimas_ventas || !data.ultimas_ventas.length) {
+      tbodyV.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin ventas registradas</td></tr>';
+    } else {
+      tbodyV.innerHTML = data.ultimas_ventas.map(function (v) {
+        var fecha = v.fecha ? v.fecha.slice(0, 16) : '';
+        return '<tr><td><span class="font-monospace small">' + v.folio + '</span><br><small class="text-muted">' + fecha + '</small></td><td class="small">' + (v.usuario_nombre || '') + '</td><td><span class="badge text-bg-secondary">' + v.metodo_pago + '</span></td><td class="text-end fw-semibold">' + fmt(v.total) + '</td></tr>';
+      }).join('');
+    }
+  }
+
+  function loadDashboard() {
+    return apiFetch('api/dashboard.php').then(function (data) {
+      renderDashboard(data);
+    }).catch(function (error) {
+      showMessage('danger', 'Dashboard: ' + error.message);
+    });
+  }
+
   function init() {
     window.addEventListener('error', function (event) {
       showMessage('danger', 'Error de JavaScript: ' + event.message);
@@ -558,9 +672,19 @@
             return;
           }
           showModule(moduleName);
+          if (moduleName === 'dashboard') {
+            loadDashboard();
+          }
         }
       });
     });
+
+    var refreshBtn = byId('dashboardRefreshBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', function () {
+        loadDashboard();
+      });
+    }
 
     byId('logoutBtn').addEventListener('click', function () {
       token = null;
