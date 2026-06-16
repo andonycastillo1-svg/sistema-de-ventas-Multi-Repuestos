@@ -13,7 +13,9 @@
   }
 
   function showMessage(type, text) {
-    var message = byId('message');
+    var appShell = byId('appShell');
+    var isLoggedIn = appShell && !appShell.classList.contains('d-none');
+    var message = byId(isLoggedIn ? 'message' : 'messageLogin');
     if (!message) { window.alert(text); return; }
     message.className = 'alert mb-3 alert-' + type;
     message.textContent = text;
@@ -197,6 +199,15 @@
   }
 
   /* -------- API -------- */
+  function forceLogout(reason) {
+    token = null;
+    currentUser = null;
+    window.localStorage.removeItem('token');
+    window.localStorage.removeItem('currentUser');
+    setLoggedIn(false);
+    showMessage('warning', reason || 'Sesión expirada. Por favor inicia sesión nuevamente.');
+  }
+
   function parseResponse(response) {
     return response.text().then(function (text) {
       var body = {};
@@ -209,6 +220,10 @@
         }
       }
       if (!response.ok) {
+        if (response.status === 401) {
+          forceLogout('Sesión expirada o token inválido. Por favor inicia sesión nuevamente.');
+          throw new Error('Sesión expirada.');
+        }
         if (body.code === 'PASSWORD_MISMATCH') { throw new Error('La contraseña no coincide con la guardada. (PASSWORD_MISMATCH)'); }
         if (body.code === 'USER_NOT_FOUND')    { throw new Error('No existe ese usuario o correo. (USER_NOT_FOUND)'); }
         if (body.code === 'USER_INACTIVE')     { throw new Error('El usuario está inactivo. (USER_INACTIVE)'); }
