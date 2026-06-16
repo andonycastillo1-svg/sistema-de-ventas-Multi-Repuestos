@@ -252,3 +252,20 @@ El código `PASSWORD_MISMATCH` significa que el usuario `admin` sí existe y est
 6. Elimina `reset_password.php` cuando termines.
 
 No edites `password_hash` escribiendo la contraseña en texto plano en phpMyAdmin; siempre debe guardarse como hash bcrypt generado por PHP.
+
+
+## 11. Si `reset_password.php` muestra texto JSON y no aparece formulario
+
+Para simplificar la instalación, `reset_password.php` ahora trae una clave temporal inicial:
+
+```php
+const SETUP_KEY = '123321';
+```
+
+Abre exactamente esta URL, ajustando dominio y carpeta:
+
+```text
+https://tudominio.com/SistemadeVentas/public_html/tools/reset_password.php?key=123321
+```
+
+Si cambiaste `SETUP_KEY`, entonces el valor de `key=` en la URL debe ser exactamente igual. Cuando termines de restablecer la contraseña, elimina `reset_password.php` del hosting.

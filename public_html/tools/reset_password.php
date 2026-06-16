@@ -4,17 +4,25 @@ declare(strict_types=1);
 
 require __DIR__ . '/../api/config.php';
 
-const SETUP_KEY = 'CAMBIA_ESTA_CLAVE_TEMPORAL';
+const SETUP_KEY = '123321';
 
-if (SETUP_KEY === 'CAMBIA_ESTA_CLAVE_TEMPORAL') {
-    json_response([
-        'message' => 'Antes de usar esta herramienta edita SETUP_KEY en public_html/tools/reset_password.php.'
-    ], 500);
+function render_setup_error(string $title, string $message): void
+{
+    http_response_code(403);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</title>';
+    echo '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-light"><main class="container py-4">';
+    echo '<div class="alert alert-warning"><h1 class="h4">' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h1><p class="mb-0">' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p></div>';
+    echo '</main></body></html>';
+    exit;
 }
 
 $key = $_GET['key'] ?? '';
 if (!hash_equals(SETUP_KEY, (string) $key)) {
-    json_response(['message' => 'Clave de instalación inválida.'], 403);
+    render_setup_error(
+        'Clave de instalación inválida',
+        'Abre esta herramienta con ?key=123321 o cambia SETUP_KEY dentro de public_html/tools/reset_password.php.'
+    );
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
