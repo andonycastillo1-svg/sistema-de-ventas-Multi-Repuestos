@@ -246,6 +246,7 @@
     options.headers.Accept = 'application/json';
     if (token) {
       options.headers.Authorization = 'Bearer ' + token;
+      options.headers['X-Token'] = token;
       url = appendTokenToUrl(url);
     }
     return fetch(url, options).then(parseResponse).catch(function (error) {
