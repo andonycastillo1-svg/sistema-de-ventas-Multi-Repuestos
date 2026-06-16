@@ -19,6 +19,7 @@ try {
         'api/reportes.php' => __DIR__ . '/reportes.php',
         'api/bancos.php' => __DIR__ . '/bancos.php',
         'assets/app.js' => dirname(__DIR__) . '/assets/app.js',
+        'assets/logo.svg' => dirname(__DIR__) . '/assets/logo.svg',
         'index.html' => dirname(__DIR__) . '/index.html',
     ];
 

@@ -36,10 +36,34 @@
     button.disabled = false;
   }
 
+  function showModule(moduleName) {
+    Array.prototype.forEach.call(document.querySelectorAll('.module-view'), function (section) {
+      section.classList.add('d-none');
+    });
+
+    byId('mainMenu').classList.toggle('d-none', moduleName !== 'menu');
+
+    if (moduleName !== 'menu') {
+      var target = byId('module-' + moduleName);
+      if (target) {
+        target.classList.remove('d-none');
+      }
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function setLoggedIn(isLoggedIn) {
     byId('loginCard').classList.toggle('d-none', isLoggedIn);
-    byId('posCard').classList.toggle('d-none', !isLoggedIn);
+    byId('mainMenu').classList.toggle('d-none', !isLoggedIn);
     byId('logoutBtn').classList.toggle('d-none', !isLoggedIn);
+    byId('homeBtn').classList.toggle('d-none', !isLoggedIn);
+
+    if (!isLoggedIn) {
+      Array.prototype.forEach.call(document.querySelectorAll('.module-view'), function (section) {
+        section.classList.add('d-none');
+      });
+    }
   }
 
   function renderCart() {
@@ -132,6 +156,7 @@
         token = body.token;
         window.localStorage.setItem('token', token);
         setLoggedIn(true);
+        showModule('menu');
         showMessage('success', 'Sesión iniciada correctamente.');
       }).catch(function (error) {
         console.error(error);
@@ -378,6 +403,15 @@
     initHealthCheck();
     initBusinessModules();
 
+    Array.prototype.forEach.call(document.querySelectorAll('[data-module]'), function (element) {
+      element.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (token) {
+          showModule(element.getAttribute('data-module'));
+        }
+      });
+    });
+
     byId('logoutBtn').addEventListener('click', function () {
       token = null;
       window.localStorage.removeItem('token');
@@ -386,6 +420,9 @@
     });
 
     setLoggedIn(Boolean(token));
+    if (token) {
+      showModule('menu');
+    }
     renderCart();
     if (token) {
       loadProducts().catch(function () {});

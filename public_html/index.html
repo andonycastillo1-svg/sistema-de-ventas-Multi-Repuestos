@@ -3,23 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Multi Repuestos - Punto de Venta</title>
+  <title>Multi Parts S&amp;A</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f4f6f9; }
+    .brand-logo { width: 52px; height: 52px; object-fit: contain; background: #fff; border-radius: 12px; }
+    .login-logo { max-width: 320px; width: 100%; height: auto; display: block; margin: 0 auto 1rem; }
+    .menu-card { cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+    .menu-card:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.12)!important; }
+    .module-help { border-left: 4px solid #0d6efd; background: #eef5ff; }
+    @media (max-width: 576px) { .navbar-brand span { font-size: 1rem; } .container-fluid { padding-left: .75rem; padding-right: .75rem; } }
+  </style>
 </head>
-<body class="bg-light">
-  <nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+<body>
+  <nav class="navbar navbar-expand-lg bg-dark navbar-dark sticky-top">
     <div class="container-fluid">
-      <span class="navbar-brand">Multi Repuestos</span>
-      <button id="logoutBtn" class="btn btn-outline-light btn-sm d-none" type="button">Salir</button>
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#" data-module="menu">
+        <img src="assets/logo.svg" class="brand-logo" alt="Logo Multi Parts S&A">
+        <span>Multi Parts S&amp;A</span>
+      </a>
+      <div class="d-flex gap-2">
+        <button id="homeBtn" class="btn btn-outline-light btn-sm d-none" type="button" data-module="menu">Menú</button>
+        <button id="logoutBtn" class="btn btn-outline-light btn-sm d-none" type="button">Salir</button>
+      </div>
     </div>
   </nav>
 
-  <main class="container py-4">
+  <main class="container-fluid container-lg py-4">
     <section id="loginCard" class="row justify-content-center">
-      <div class="col-12 col-md-6 col-lg-4">
+      <div class="col-12 col-md-7 col-lg-5">
         <div class="card shadow-sm">
-          <div class="card-body">
-            <h1 class="h4 mb-3">Iniciar sesión</h1>
+          <div class="card-body p-4">
+            <img src="assets/logo.svg" class="login-logo" alt="Multi Parts S&A">
+            <h1 class="h4 mb-3 text-center">Iniciar sesión</h1>
             <form id="loginForm">
               <div class="mb-3">
                 <label class="form-label" for="loginUsuario">Usuario o correo</label>
@@ -37,155 +53,60 @@
       </div>
     </section>
 
-    <section id="posCard" class="d-none">
+    <section id="mainMenu" class="d-none">
+      <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-center mb-3">
+        <div>
+          <h1 class="h3 mb-1">Menú principal</h1>
+          <p class="text-muted mb-0">Selecciona un módulo. Cada pantalla incluye ayuda rápida para guiarte.</p>
+        </div>
+      </div>
       <div class="row g-3">
-        <div class="col-12 col-lg-5">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h2 class="h5">Venta rápida</h2>
-              <form id="addItemForm" class="row g-2">
-                <div class="col-12">
-                  <label class="form-label" for="productoId">ID Producto</label>
-                  <input id="productoId" class="form-control" type="number" min="1" required>
-                </div>
-                <div class="col-12">
-                  <label class="form-label" for="cantidad">Cantidad</label>
-                  <input id="cantidad" class="form-control" type="number" min="0.001" step="0.001" value="1" required>
-                </div>
-                <div class="col-12">
-                  <button class="btn btn-success w-100" type="submit">Agregar al carrito</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-lg-7">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h2 class="h5">Carrito</h2>
-              <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                  <thead>
-                    <tr>
-                      <th>Producto ID</th>
-                      <th class="text-end">Cantidad</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="cartBody"></tbody>
-                </table>
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="ventaDescuento">Descuento de venta</label>
-                <input id="ventaDescuento" class="form-control" type="number" min="0" step="0.01" value="0">
-              </div>
-              <div class="d-flex gap-2 justify-content-end">
-                <button id="clearCartBtn" class="btn btn-outline-secondary" type="button">Limpiar</button>
-                <button id="emitSaleBtn" class="btn btn-primary" type="button">Emitir venta</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="pos"><div class="card-body"><h2 class="h5">🧾 Punto de venta</h2><p class="mb-0 text-muted">Carrito, descuento y nota de salida.</p></div></div></div>
+        <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="productos"><div class="card-body"><h2 class="h5">📦 Productos</h2><p class="mb-0 text-muted">Crea productos con costo, precio, IVA y stock.</p></div></div></div>
+        <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="compras"><div class="card-body"><h2 class="h5">🛒 Compras</h2><p class="mb-0 text-muted">Ingresa compras y aumenta inventario.</p></div></div></div>
+        <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="usuarios"><div class="card-body"><h2 class="h5">👤 Usuarios</h2><p class="mb-0 text-muted">Crea operadores y vendedores.</p></div></div></div>
+        <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="bancos"><div class="card-body"><h2 class="h5">🏦 Bancos y pagos</h2><p class="mb-0 text-muted">Registra bancos, depósitos y pagos.</p></div></div></div>
+        <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="reportes"><div class="card-body"><h2 class="h5">📊 Reportes</h2><p class="mb-0 text-muted">Consulta total vendido y descuentos.</p></div></div></div>
       </div>
+    </section>
 
-      <div class="row g-3 mt-1">
-        <div class="col-12 col-xl-6">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h2 class="h5">Crear producto</h2>
-              <form id="productForm" class="row g-2">
-                <div class="col-6"><input class="form-control" name="sku" placeholder="SKU" required></div>
-                <div class="col-6"><input class="form-control" name="nombre" placeholder="Nombre" required></div>
-                <div class="col-6"><input class="form-control" name="categoria" placeholder="Categoría" value="General"></div>
-                <div class="col-6"><input class="form-control" name="unidad" placeholder="Unidad" value="PZA"></div>
-                <div class="col-4"><input class="form-control" name="costoCompra" type="number" step="0.01" placeholder="Costo"></div>
-                <div class="col-4"><input class="form-control" name="precioVenta" type="number" step="0.01" placeholder="Precio"></div>
-                <div class="col-4"><input class="form-control" name="ivaPorcentaje" type="number" step="0.01" placeholder="IVA %" value="0"></div>
-                <div class="col-4"><input class="form-control" name="stockActual" type="number" step="0.001" placeholder="Stock" value="0"></div>
-                <div class="col-4"><input class="form-control" name="stockMinimo" type="number" step="0.001" placeholder="Stock mín." value="0"></div>
-                <div class="col-4"><input class="form-control" name="stockMaximo" type="number" step="0.001" placeholder="Stock máx." value="0"></div>
-                <div class="col-12"><button class="btn btn-primary w-100" type="submit">Guardar producto</button></div>
-              </form>
-              <div id="productsList" class="small mt-3"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-xl-6">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h2 class="h5">Ingresar compra / entrada de producto</h2>
-              <form id="purchaseForm" class="row g-2">
-                <div class="col-6"><input class="form-control" name="proveedorNit" placeholder="NIT proveedor" value="CF"></div>
-                <div class="col-6"><input class="form-control" name="proveedorNombre" placeholder="Proveedor" value="Proveedor General"></div>
-                <div class="col-4"><input class="form-control" name="productoId" type="number" placeholder="ID producto" required></div>
-                <div class="col-4"><input class="form-control" name="cantidad" type="number" step="0.001" placeholder="Cantidad" required></div>
-                <div class="col-4"><input class="form-control" name="costoUnitario" type="number" step="0.01" placeholder="Costo unitario" required></div>
-                <div class="col-12"><button class="btn btn-primary w-100" type="submit">Registrar compra recibida</button></div>
-              </form>
-              <div id="purchasesList" class="small mt-3"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-xl-4">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h2 class="h5">Crear usuario</h2>
-              <form id="userForm" class="row g-2">
-                <div class="col-12"><input class="form-control" name="usuario" placeholder="Usuario" required></div>
-                <div class="col-12"><input class="form-control" name="email" type="email" placeholder="Correo" required></div>
-                <div class="col-12"><input class="form-control" name="nombre" placeholder="Nombre" required></div>
-                <div class="col-12"><input class="form-control" name="password" type="password" minlength="8" placeholder="Contraseña" required></div>
-                <div class="col-12"><input class="form-control" name="rol" placeholder="Rol" value="VENDEDOR"></div>
-                <div class="col-12"><button class="btn btn-primary w-100" type="submit">Guardar usuario</button></div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-xl-4">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h2 class="h5">Bancos y pagos</h2>
-              <form id="bankForm" class="row g-2 mb-3">
-                <div class="col-7"><input class="form-control" name="nombre" placeholder="Banco" required></div>
-                <div class="col-5"><input class="form-control" name="numeroCuenta" placeholder="Cuenta"></div>
-                <div class="col-12"><button class="btn btn-outline-primary w-100" type="submit">Crear banco</button></div>
-              </form>
-              <form id="bankPaymentForm" class="row g-2">
-                <div class="col-6"><input class="form-control" name="bancoId" type="number" placeholder="ID banco" required></div>
-                <div class="col-6"><input class="form-control" name="monto" type="number" step="0.01" placeholder="Monto" required></div>
-                <div class="col-12"><input class="form-control" name="referencia" placeholder="Referencia"></div>
-                <div class="col-12"><button class="btn btn-primary w-100" type="submit">Registrar pago a banco</button></div>
-              </form>
-              <div id="banksList" class="small mt-3"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-xl-4">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h2 class="h5">Total vendido</h2>
-              <form id="reportForm" class="row g-2">
-                <div class="col-6"><input class="form-control" name="desde" type="date"></div>
-                <div class="col-6"><input class="form-control" name="hasta" type="date"></div>
-                <div class="col-12"><button class="btn btn-primary w-100" type="submit">Ver reporte</button></div>
-              </form>
-              <div id="salesReport" class="mt-3 fw-bold"></div>
-            </div>
-          </div>
-        </div>
+    <section id="module-pos" class="module-view d-none">
+      <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> agrega productos por ID, define cantidad, aplica descuento si corresponde y emite la venta.</div>
+      <div class="row g-3">
+        <div class="col-12 col-lg-5"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Venta rápida</h2><form id="addItemForm" class="row g-2"><div class="col-12"><label class="form-label" for="productoId">ID Producto</label><input id="productoId" class="form-control" type="number" min="1" required></div><div class="col-12"><label class="form-label" for="cantidad">Cantidad</label><input id="cantidad" class="form-control" type="number" min="0.001" step="0.001" value="1" required></div><div class="col-12"><button class="btn btn-success w-100" type="submit">Agregar al carrito</button></div></form></div></div></div>
+        <div class="col-12 col-lg-7"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Carrito</h2><div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Producto ID</th><th class="text-end">Cantidad</th><th></th></tr></thead><tbody id="cartBody"></tbody></table></div><div class="mb-3"><label class="form-label" for="ventaDescuento">Descuento de venta</label><input id="ventaDescuento" class="form-control" type="number" min="0" step="0.01" value="0"></div><div class="d-flex gap-2 justify-content-end"><button id="clearCartBtn" class="btn btn-outline-secondary" type="button">Limpiar</button><button id="emitSaleBtn" class="btn btn-primary" type="button">Emitir venta</button></div></div></div></div>
       </div>
+    </section>
 
+    <section id="module-productos" class="module-view d-none">
+      <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> primero crea productos; luego usa su ID para compras y ventas.</div>
+      <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Crear producto</h2><form id="productForm" class="row g-2"><div class="col-12 col-md-6"><input class="form-control" name="sku" placeholder="SKU" required></div><div class="col-12 col-md-6"><input class="form-control" name="nombre" placeholder="Nombre" required></div><div class="col-6"><input class="form-control" name="categoria" placeholder="Categoría" value="General"></div><div class="col-6"><input class="form-control" name="unidad" placeholder="Unidad" value="PZA"></div><div class="col-6 col-md-4"><input class="form-control" name="costoCompra" type="number" step="0.01" placeholder="Costo"></div><div class="col-6 col-md-4"><input class="form-control" name="precioVenta" type="number" step="0.01" placeholder="Precio"></div><div class="col-6 col-md-4"><input class="form-control" name="ivaPorcentaje" type="number" step="0.01" placeholder="IVA %" value="0"></div><div class="col-6 col-md-4"><input class="form-control" name="stockActual" type="number" step="0.001" placeholder="Stock" value="0"></div><div class="col-6 col-md-4"><input class="form-control" name="stockMinimo" type="number" step="0.001" placeholder="Stock mín." value="0"></div><div class="col-6 col-md-4"><input class="form-control" name="stockMaximo" type="number" step="0.001" placeholder="Stock máx." value="0"></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Guardar producto</button></div></form><div id="productsList" class="small mt-3"></div></div></div>
+    </section>
+
+    <section id="module-compras" class="module-view d-none">
+      <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> registra compras recibidas para sumar stock y generar Kardex automático.</div>
+      <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Ingresar compra / entrada de producto</h2><form id="purchaseForm" class="row g-2"><div class="col-12 col-md-6"><input class="form-control" name="proveedorNit" placeholder="NIT proveedor" value="CF"></div><div class="col-12 col-md-6"><input class="form-control" name="proveedorNombre" placeholder="Proveedor" value="Proveedor General"></div><div class="col-12 col-md-4"><input class="form-control" name="productoId" type="number" placeholder="ID producto" required></div><div class="col-12 col-md-4"><input class="form-control" name="cantidad" type="number" step="0.001" placeholder="Cantidad" required></div><div class="col-12 col-md-4"><input class="form-control" name="costoUnitario" type="number" step="0.01" placeholder="Costo unitario" required></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Registrar compra recibida</button></div></form><div id="purchasesList" class="small mt-3"></div></div></div>
+    </section>
+
+    <section id="module-usuarios" class="module-view d-none">
+      <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> crea usuarios para vendedores u operadores. La contraseña se guarda encriptada.</div>
+      <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Crear usuario</h2><form id="userForm" class="row g-2"><div class="col-12 col-md-6"><input class="form-control" name="usuario" placeholder="Usuario" required></div><div class="col-12 col-md-6"><input class="form-control" name="email" type="email" placeholder="Correo" required></div><div class="col-12 col-md-6"><input class="form-control" name="nombre" placeholder="Nombre" required></div><div class="col-12 col-md-6"><input class="form-control" name="password" type="password" minlength="8" placeholder="Contraseña" required></div><div class="col-12"><input class="form-control" name="rol" placeholder="Rol" value="VENDEDOR"></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Guardar usuario</button></div></form></div></div>
+    </section>
+
+    <section id="module-bancos" class="module-view d-none">
+      <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> crea bancos y registra depósitos, transferencias o pagos asociados.</div>
+      <div class="row g-3"><div class="col-12 col-lg-6"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Crear banco</h2><form id="bankForm" class="row g-2"><div class="col-12"><input class="form-control" name="nombre" placeholder="Banco" required></div><div class="col-12"><input class="form-control" name="numeroCuenta" placeholder="Cuenta"></div><div class="col-12"><button class="btn btn-outline-primary w-100" type="submit">Crear banco</button></div></form></div></div></div><div class="col-12 col-lg-6"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Registrar pago a banco</h2><form id="bankPaymentForm" class="row g-2"><div class="col-6"><input class="form-control" name="bancoId" type="number" placeholder="ID banco" required></div><div class="col-6"><input class="form-control" name="monto" type="number" step="0.01" placeholder="Monto" required></div><div class="col-12"><input class="form-control" name="referencia" placeholder="Referencia"></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Registrar pago</button></div></form></div></div></div><div class="col-12"><div id="banksList" class="small"></div></div></div>
+    </section>
+
+    <section id="module-reportes" class="module-view d-none">
+      <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> consulta el monto total vendido por fecha, incluyendo descuentos.</div>
+      <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Total vendido</h2><form id="reportForm" class="row g-2"><div class="col-12 col-md-6"><input class="form-control" name="desde" type="date"></div><div class="col-12 col-md-6"><input class="form-control" name="hasta" type="date"></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Ver reporte</button></div></form><div id="salesReport" class="mt-3 fw-bold"></div></div></div>
     </section>
 
     <div id="message" class="alert mt-3 d-none" role="alert"></div>
   </main>
 
   <noscript><div class="container"><div class="alert alert-danger">Tu navegador tiene JavaScript desactivado. Actívalo para usar la app.</div></div></noscript>
-  <script src="assets/app.js?v=3"></script>
+  <script src="assets/app.js?v=4"></script>
 </body>
 </html>

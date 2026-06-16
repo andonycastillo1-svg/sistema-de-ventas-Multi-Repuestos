@@ -304,3 +304,25 @@ La pantalla principal ahora contempla:
 - venta con descuento;
 - total vendido por rango de fechas;
 - creación de bancos y registro de pagos/depósitos bancarios.
+
+
+## 13. Menú principal, módulos separados y marca
+
+La interfaz ahora usa el nombre **Multi Parts S&A**, muestra un logo en el login y separa los módulos en un menú principal responsivo:
+
+- Punto de venta;
+- Productos;
+- Compras;
+- Usuarios;
+- Bancos y pagos;
+- Reportes.
+
+Sube también:
+
+```text
+public_html/assets/logo.svg
+public_html/index.html
+public_html/assets/app.js
+```
+
+Si tienes el logo original en PNG/JPG, puedes reemplazar `public_html/assets/logo.svg` por tu archivo real manteniendo el mismo nombre o ajustando la ruta en `index.html`.
