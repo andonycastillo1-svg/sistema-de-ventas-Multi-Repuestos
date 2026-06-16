@@ -456,3 +456,20 @@ public_html/index.html
 4. Si falla, el mensaje ahora debe indicar si el usuario/correo ya existe, si el rol es inválido o si MySQL devolvió otro error.
 
 Recuerda que los roles permitidos son únicamente `ADMINISTRADOR` y `VENDEDOR`.
+
+
+## 19. Token requerido al crear usuarios aunque ya entraste
+
+Para que puedas avanzar en cPanel, `api/usuarios.php` permite crear usuarios sin exigir token durante la instalación:
+
+```php
+const REQUIRE_TOKEN_TO_CREATE_USERS = false;
+```
+
+Cuando ya termines de crear tus usuarios, puedes editar `public_html/api/usuarios.php` y cambiarlo a:
+
+```php
+const REQUIRE_TOKEN_TO_CREATE_USERS = true;
+```
+
+Si todavía ves el campo de rol como texto en lugar de selector, te falta subir `public_html/index.html` actualizado o limpiar caché del navegador.

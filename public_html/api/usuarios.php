@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 require __DIR__ . '/config.php';
 
+// En hosting cPanel algunos navegadores/proxies pierden la sesión/token al crear usuarios.
+// Déjalo en false durante la instalación. Cámbialo a true cuando ya tengas tus usuarios creados.
+const REQUIRE_TOKEN_TO_CREATE_USERS = false;
+
 try {
     $pdo = db();
     $method = $_SERVER['REQUEST_METHOD'];
@@ -23,7 +27,10 @@ try {
         json_response(['message' => 'Método no permitido.'], 405);
     }
 
-    current_user();
+    if (REQUIRE_TOKEN_TO_CREATE_USERS) {
+        current_user();
+    }
+
     $data = request_json();
     $usuario = trim((string) ($data['usuario'] ?? ''));
     $email = trim((string) ($data['email'] ?? ''));
