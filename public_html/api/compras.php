@@ -10,7 +10,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     current_user();
     $stmt = $pdo->query(
-        'SELECT c.id, c.folio, p.nombre AS proveedor, c.usuario_nombre, c.fecha, c.estado, c.total
+        'SELECT c.id, c.folio, c.factura_numero, p.nombre AS proveedor, c.usuario_nombre, c.fecha, c.estado, c.total
            FROM compras c
            JOIN proveedores p ON p.id = c.proveedor_id
           ORDER BY c.id DESC
@@ -48,6 +48,11 @@ try {
     }
 
     $folio = 'COM-' . gmdate('YmdHis') . '-' . random_int(1000, 9999);
+    $facturaNumero = trim((string) ($data['facturaNumero'] ?? '')) ?: null;
+    $fechaCompra = trim((string) ($data['fechaCompra'] ?? '')) ?: gmdate('Y-m-d');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaCompra)) {
+        throw new RuntimeException('La fecha de compra debe tener formato YYYY-MM-DD.');
+    }
     $lineas = [];
     $subtotalCompra = 0.0;
     $impuestosCompra = 0.0;
@@ -80,11 +85,13 @@ try {
 
     $totalCompra = round($subtotalCompra + $impuestosCompra, 2);
     $stmt = $pdo->prepare(
-        'INSERT INTO compras (folio, proveedor_id, usuario_id, usuario_nombre, fecha, estado, subtotal, impuestos, total, recibido_at)
-         VALUES (:folio, :proveedor_id, :usuario_id, :usuario_nombre, NOW(), "RECIBIDO", :subtotal, :impuestos, :total, NOW())'
+        'INSERT INTO compras (folio, factura_numero, proveedor_id, usuario_id, usuario_nombre, fecha, estado, subtotal, impuestos, total, recibido_at)
+         VALUES (:folio, :factura_numero, :proveedor_id, :usuario_id, :usuario_nombre, :fecha, "RECIBIDO", :subtotal, :impuestos, :total, NOW())'
     );
     $stmt->execute([
         'folio' => $folio,
+        'factura_numero' => $facturaNumero,
+        'fecha' => $fechaCompra . ' 00:00:00',
         'proveedor_id' => $proveedorId,
         'usuario_id' => (int) $usuarioSesion['sub'],
         'usuario_nombre' => $usuarioSesion['nombre'],

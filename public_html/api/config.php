@@ -100,11 +100,18 @@ function authorization_header(): string
 function current_user(): array
 {
     $header = authorization_header();
-    if (!preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {
-        json_response(['message' => 'Token requerido.'], 401);
+    if (preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {
+        return jwt_decode($matches[1]);
     }
 
-    return jwt_decode($matches[1]);
+    $queryToken = $_GET['token'] ?? $_GET['access_token'] ?? '';
+    if (is_string($queryToken) && $queryToken !== '') {
+        return jwt_decode($queryToken);
+    }
+
+    json_response([
+        'message' => 'Token requerido. Si estás en cPanel y ya iniciaste sesión, actualiza public_html/assets/app.js para enviar token por parámetro.'
+    ], 401);
 }
 
 function request_json(): array

@@ -18,4 +18,15 @@ $stmt = $pdo->prepare(
       WHERE estado = "EMITIDA" AND DATE(fecha) BETWEEN :desde AND :hasta'
 );
 $stmt->execute(['desde' => $desde, 'hasta' => $hasta]);
-json_response(['desde' => $desde, 'hasta' => $hasta, 'ventas' => $stmt->fetch()]);
+$ventas = $stmt->fetch();
+
+$stmt = $pdo->prepare(
+    'SELECT metodo_pago, COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+       FROM ventas
+      WHERE estado = "EMITIDA" AND DATE(fecha) BETWEEN :desde AND :hasta
+      GROUP BY metodo_pago
+      ORDER BY metodo_pago'
+);
+$stmt->execute(['desde' => $desde, 'hasta' => $hasta]);
+
+json_response(['desde' => $desde, 'hasta' => $hasta, 'ventas' => $ventas, 'por_metodo_pago' => $stmt->fetchAll()]);

@@ -4,6 +4,7 @@
   var token = window.localStorage.getItem('token');
   var cart = [];
   var productsCache = [];
+  var purchaseItems = [];
 
   function byId(id) {
     return document.getElementById(id);
@@ -117,6 +118,15 @@
     });
   }
 
+  function appendTokenToUrl(url) {
+    if (!token) {
+      return url;
+    }
+
+    var separator = url.indexOf('?') === -1 ? '?' : '&';
+    return url + separator + 'token=' + encodeURIComponent(token);
+  }
+
   function apiFetch(url, options) {
     options = options || {};
     options.headers = options.headers || {};
@@ -125,6 +135,7 @@
 
     if (token) {
       options.headers.Authorization = 'Bearer ' + token;
+      url = appendTokenToUrl(url);
     }
 
     return fetch(url, options).then(parseResponse).catch(function (error) {
@@ -210,7 +221,7 @@
 
       apiFetch('api/venta.php', {
         method: 'POST',
-        body: JSON.stringify({ items: cart, metodoPago: 'EFECTIVO', descuento: Number(byId('ventaDescuento').value || 0) })
+        body: JSON.stringify({ items: cart, metodoPago: byId('metodoPago').value, descuento: Number(byId('ventaDescuento').value || 0) })
       }).then(function (body) {
         cart = [];
         renderCart();
@@ -309,7 +320,7 @@
         return;
       }
       target.innerHTML = '<strong>Últimas compras:</strong><br>' + (body.compras || []).slice(0, 5).map(function (c) {
-        return c.folio + ' | ' + c.proveedor + ' | Total: ' + c.total;
+        return c.folio + (c.factura_numero ? ' | Factura: ' + c.factura_numero : '') + ' | ' + c.proveedor + ' | Fecha: ' + c.fecha + ' | Total: ' + c.total;
       }).join('<br>');
     });
   }
@@ -326,6 +337,27 @@
     });
   }
 
+
+  function renderPurchaseItems() {
+    var body = byId('purchaseItemsBody');
+    if (!body) {
+      return;
+    }
+
+    body.innerHTML = purchaseItems.map(function (item, index) {
+      return '<tr><td>' + item.nombre + '</td><td class="text-end">' + item.cantidad + '</td><td class="text-end">' + item.costoUnitario + '</td><td class="text-end"><button class="btn btn-sm btn-outline-danger" data-purchase-index="' + index + '" type="button">Quitar</button></td></tr>';
+    }).join('');
+  }
+
+  function selectedProductIdFromInput(inputId) {
+    var selected = byId(inputId).value;
+    var match = selected.match(/^#(\d+)/);
+    if (!match) {
+      return null;
+    }
+    return { id: Number(match[1]), label: selected };
+  }
+
   function initBusinessModules() {
     byId('productForm').addEventListener('submit', function (event) {
       event.preventDefault();
@@ -338,19 +370,55 @@
       });
     });
 
+    byId('addPurchaseItemBtn').addEventListener('click', function () {
+      var product = selectedProductIdFromInput('purchaseProductoBusqueda');
+      var cantidad = Number(byId('purchaseCantidad').value || 0);
+      var costoUnitario = Number(byId('purchaseCosto').value || 0);
+
+      if (!product || cantidad <= 0 || costoUnitario < 0) {
+        showMessage('danger', 'Selecciona un repuesto válido, cantidad y costo para agregarlo a la factura.');
+        return;
+      }
+
+      purchaseItems.push({ productoId: product.id, nombre: product.label, cantidad: cantidad, costoUnitario: costoUnitario });
+      byId('purchaseProductoBusqueda').value = '';
+      byId('purchaseCantidad').value = '';
+      byId('purchaseCosto').value = '';
+      renderPurchaseItems();
+    });
+
+    byId('purchaseItemsBody').addEventListener('click', function (event) {
+      if (event.target.dataset.purchaseIndex) {
+        purchaseItems.splice(Number(event.target.dataset.purchaseIndex), 1);
+        renderPurchaseItems();
+      }
+    });
+
     byId('purchaseForm').addEventListener('submit', function (event) {
       event.preventDefault();
       var data = formToObject(event.target);
+
+      if (purchaseItems.length === 0) {
+        showMessage('danger', 'Agrega al menos un item a la factura de compra.');
+        return;
+      }
+
       apiFetch('api/compras.php', {
         method: 'POST',
         body: JSON.stringify({
+          fechaCompra: data.fechaCompra,
+          facturaNumero: data.facturaNumero,
           proveedorNit: data.proveedorNit,
           proveedorNombre: data.proveedorNombre,
-          items: [{ productoId: data.productoId, cantidad: data.cantidad, costoUnitario: data.costoUnitario }]
+          items: purchaseItems.map(function (item) {
+            return { productoId: item.productoId, cantidad: item.cantidad, costoUnitario: item.costoUnitario };
+          })
         })
       }).then(function (body) {
         showMessage('success', body.message + ' Folio: ' + body.folio);
         event.target.reset();
+        purchaseItems = [];
+        renderPurchaseItems();
         return Promise.all([loadProducts(), loadPurchases()]);
       }).catch(function (error) {
         showMessage('danger', error.message);
@@ -406,7 +474,8 @@
       }
       apiFetch('api/reportes.php?' + params.toString()).then(function (body) {
         var v = body.ventas || {};
-        byId('salesReport').textContent = 'Ventas: ' + v.cantidad_ventas + ' | Total vendido: ' + v.total_vendido + ' | Descuentos: ' + v.descuentos;
+        var methods = (body.por_metodo_pago || []).map(function (m) { return m.metodo_pago + ': ' + m.total; }).join(' | ');
+        byId('salesReport').textContent = 'Ventas: ' + v.cantidad_ventas + ' | Total vendido: ' + v.total_vendido + ' | Descuentos: ' + v.descuentos + (methods ? ' | Pagos: ' + methods : '');
       }).catch(function (error) {
         showMessage('danger', error.message);
       });
@@ -449,6 +518,7 @@
       showModule('menu');
     }
     renderCart();
+    renderPurchaseItems();
     if (token) {
       loadProducts().catch(function () {});
       loadPurchases().catch(function () {});

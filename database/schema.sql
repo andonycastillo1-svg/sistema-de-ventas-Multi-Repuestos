@@ -110,6 +110,7 @@ CREATE TABLE proveedores (
 CREATE TABLE compras (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   folio VARCHAR(40) NOT NULL,
+  factura_numero VARCHAR(80) NULL,
   proveedor_id BIGINT UNSIGNED NOT NULL,
   usuario_id BIGINT UNSIGNED NOT NULL,
   usuario_nombre VARCHAR(160) NOT NULL,
@@ -127,6 +128,7 @@ CREATE TABLE compras (
   CONSTRAINT fk_compras_usuarios FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
   CONSTRAINT chk_compras_totales CHECK (subtotal >= 0 AND impuestos >= 0 AND total >= 0),
   INDEX idx_compras_fecha_estado (fecha, estado),
+  INDEX idx_compras_factura (factura_numero),
   INDEX idx_compras_proveedor_fecha (proveedor_id, fecha)
 ) ENGINE=InnoDB;
 
@@ -160,7 +162,7 @@ CREATE TABLE ventas (
   impuestos DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   descuento DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   total DECIMAL(14,2) NOT NULL DEFAULT 0.00,
-  metodo_pago ENUM('EFECTIVO','TARJETA','TRANSFERENCIA','MIXTO') NOT NULL DEFAULT 'EFECTIVO',
+  metodo_pago ENUM('EFECTIVO','TARJETA','DEPOSITO','CARGO_EXPRESS','TRANSFERENCIA','MIXTO') NOT NULL DEFAULT 'EFECTIVO',
   observaciones VARCHAR(255) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

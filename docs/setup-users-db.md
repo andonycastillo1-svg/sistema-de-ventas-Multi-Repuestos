@@ -349,3 +349,65 @@ database/migration_autoparts_product_fields.sql
 ```
 
 En el Punto de Venta ya no se escribe el ID manualmente: se busca el repuesto por nombre/SKU/vehículo y el sistema toma internamente el ID correcto.
+
+
+## 15. Token requerido al crear usuarios y control de formas de pago
+
+Si al crear un vendedor aparece `Token requerido`, sube estos archivos actualizados:
+
+```text
+public_html/api/config.php
+public_html/assets/app.js
+public_html/api/usuarios.php
+```
+
+En algunos cPanel/Apache el header `Authorization` se pierde. La app ahora envía el token también como parámetro seguro de sesión para que los endpoints protegidos puedan validar el usuario autenticado.
+
+Los perfiles permitidos son únicamente:
+
+- `ADMINISTRADOR`;
+- `VENDEDOR`.
+
+La venta ahora permite registrar forma de pago:
+
+- efectivo;
+- tarjeta;
+- depósito;
+- Cargo Express;
+- transferencia;
+- mixto.
+
+Para habilitar estas opciones en una base existente importa:
+
+```text
+database/migration_payment_methods_roles.sql
+```
+
+El reporte de ventas también muestra total agrupado por forma de pago.
+
+
+## 16. Facturas de compra con fecha y múltiples items
+
+El módulo de compras ahora registra la factura completa del proveedor:
+
+- fecha de compra;
+- número de factura;
+- NIT y nombre del proveedor;
+- múltiples items dentro de la misma factura;
+- cantidad y costo unitario por item.
+
+Al guardar la factura, el sistema carga todos los items al inventario y registra Kardex por cada producto.
+
+Para bases ya existentes importa:
+
+```text
+database/migration_purchase_invoices.sql
+```
+
+Luego sube:
+
+```text
+public_html/api/compras.php
+public_html/index.html
+public_html/assets/app.js
+```

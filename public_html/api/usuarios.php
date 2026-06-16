@@ -28,7 +28,11 @@ $usuario = trim((string) ($data['usuario'] ?? ''));
 $email = trim((string) ($data['email'] ?? ''));
 $nombre = trim((string) ($data['nombre'] ?? ''));
 $password = (string) ($data['password'] ?? '');
-$rolNombre = trim((string) ($data['rol'] ?? 'VENDEDOR')) ?: 'VENDEDOR';
+$rolNombre = strtoupper(trim((string) ($data['rol'] ?? 'VENDEDOR'))) ?: 'VENDEDOR';
+$rolesPermitidos = ['ADMINISTRADOR', 'VENDEDOR'];
+if (!in_array($rolNombre, $rolesPermitidos, true)) {
+    json_response(['message' => 'Rol inválido. Usa ADMINISTRADOR o VENDEDOR.'], 400);
+}
 
 if ($usuario === '' || $email === '' || $nombre === '' || strlen($password) < 8) {
     json_response(['message' => 'Usuario, email, nombre y contraseña de 8 caracteres son requeridos.'], 400);
