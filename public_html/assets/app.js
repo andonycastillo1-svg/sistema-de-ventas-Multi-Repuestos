@@ -220,8 +220,8 @@
         }
       }
       if (!response.ok) {
-        if (response.status === 401) {
-          forceLogout('Sesión expirada o token inválido. Por favor inicia sesión nuevamente.');
+        if (response.status === 401 && token) {
+          forceLogout('Sesión expirada. Por favor inicia sesión nuevamente.');
           throw new Error('Sesión expirada.');
         }
         if (body.code === 'PASSWORD_MISMATCH') { throw new Error('La contraseña no coincide con la guardada. (PASSWORD_MISMATCH)'); }
