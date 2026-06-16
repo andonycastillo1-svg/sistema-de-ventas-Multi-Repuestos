@@ -63,6 +63,13 @@ CREATE TABLE productos (
   codigo_barras VARCHAR(120) NULL,
   nombre VARCHAR(180) NOT NULL,
   descripcion TEXT NULL,
+  marca_vehiculo VARCHAR(80) NULL,
+  modelo_vehiculo VARCHAR(80) NULL,
+  anio_inicio SMALLINT UNSIGNED NULL,
+  anio_fin SMALLINT UNSIGNED NULL,
+  motor VARCHAR(80) NULL,
+  lado ENUM('NO_APLICA','IZQUIERDO','DERECHO','DELANTERO','TRASERO') NOT NULL DEFAULT 'NO_APLICA',
+  ubicacion VARCHAR(120) NULL,
   costo_compra DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   precio_venta DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   iva_porcentaje DECIMAL(5,2) NOT NULL DEFAULT 0.00,
@@ -81,6 +88,7 @@ CREATE TABLE productos (
   CONSTRAINT chk_productos_iva CHECK (iva_porcentaje >= 0 AND iva_porcentaje <= 100),
   CONSTRAINT chk_productos_stock CHECK (stock_actual >= 0 AND stock_minimo >= 0 AND stock_maximo >= 0),
   INDEX idx_productos_nombre (nombre),
+  INDEX idx_productos_vehiculo (marca_vehiculo, modelo_vehiculo, anio_inicio, anio_fin),
   INDEX idx_productos_estado_stock (estado, stock_actual, stock_minimo)
 ) ENGINE=InnoDB;
 

@@ -3,6 +3,7 @@
 (function () {
   var token = window.localStorage.getItem('token');
   var cart = [];
+  var productsCache = [];
 
   function byId(id) {
     return document.getElementById(id);
@@ -72,7 +73,7 @@
 
     cart.forEach(function (item, index) {
       var row = document.createElement('tr');
-      row.innerHTML = '<td>' + item.productoId + '</td>' +
+      row.innerHTML = '<td>' + (item.nombre || item.productoId) + '</td>' +
         '<td class="text-end">' + item.cantidad + '</td>' +
         '<td class="text-end"><button class="btn btn-sm btn-outline-danger" data-index="' + index + '">Quitar</button></td>';
       cartBody.appendChild(row);
@@ -171,14 +172,23 @@
     byId('addItemForm').addEventListener('submit', function (event) {
       event.preventDefault();
 
+      var selected = byId('productoBusqueda').value;
+      var match = selected.match(/^#(\d+)/);
+      if (!match) {
+        showMessage('danger', 'Selecciona un producto válido de la lista por nombre/SKU.');
+        return;
+      }
+
       cart.push({
-        productoId: Number(byId('productoId').value),
+        productoId: Number(match[1]),
+        nombre: selected,
         cantidad: Number(byId('cantidad').value)
       });
 
       renderCart();
       event.target.reset();
       byId('cantidad').value = 1;
+      byId('productoBusqueda').value = '';
     });
 
     byId('cartBody').addEventListener('click', function (event) {
@@ -261,13 +271,28 @@
     return data;
   }
 
+  function productLabel(product) {
+    var vehicle = [product.marca_vehiculo, product.modelo_vehiculo, product.anio_inicio && product.anio_fin ? product.anio_inicio + '-' + product.anio_fin : '', product.motor].filter(Boolean).join(' ');
+    return '#' + product.id + ' | ' + product.sku + ' | ' + product.nombre + (vehicle ? ' | ' + vehicle : '');
+  }
+
   function renderProducts(productos) {
     var target = byId('productsList');
+    var datalist = byId('productosDatalist');
+    productsCache = productos || [];
+
+    if (datalist) {
+      datalist.innerHTML = productsCache.map(function (p) {
+        return '<option value="' + productLabel(p).replace(/"/g, '&quot;') + '">';
+      }).join('');
+    }
+
     if (!target) {
       return;
     }
-    target.innerHTML = '<strong>Últimos productos:</strong><br>' + productos.slice(0, 8).map(function (p) {
-      return '#' + p.id + ' ' + p.sku + ' - ' + p.nombre + ' | Stock: ' + p.stock_actual + ' | Precio: ' + p.precio_venta;
+
+    target.innerHTML = '<strong>Últimos repuestos:</strong><br>' + productsCache.slice(0, 8).map(function (p) {
+      return productLabel(p) + ' | Stock: ' + p.stock_actual + ' | Costo: ' + p.costo_compra + ' | Precio final: ' + p.precio_final;
     }).join('<br>');
   }
 

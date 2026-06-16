@@ -326,3 +326,26 @@ public_html/assets/app.js
 ```
 
 Si tienes el logo original en PNG/JPG, puedes reemplazar `public_html/assets/logo.svg` por tu archivo real manteniendo el mismo nombre o ajustando la ruta en `index.html`.
+
+
+## 14. Ficha de repuestos de vehículos y selección por nombre
+
+La ficha de producto ahora está ajustada a repuestos de vehículos e incluye:
+
+- marca del vehículo;
+- modelo;
+- año inicio y año fin;
+- motor o versión;
+- lado/posición;
+- ubicación en bodega;
+- costo de compra;
+- precio sin IVA;
+- precio final calculado con IVA.
+
+Para bases ya existentes importa también:
+
+```text
+database/migration_autoparts_product_fields.sql
+```
+
+En el Punto de Venta ya no se escribe el ID manualmente: se busca el repuesto por nombre/SKU/vehículo y el sistema toma internamente el ID correcto.

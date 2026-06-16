@@ -9,8 +9,11 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     $stmt = $pdo->query(
-        'SELECT p.id, p.sku, p.codigo_barras, p.nombre, p.descripcion, p.costo_compra,
-                p.precio_venta, p.iva_porcentaje, p.stock_actual, p.stock_minimo,
+        'SELECT p.id, p.sku, p.codigo_barras, p.nombre, p.descripcion, p.marca_vehiculo,
+                p.modelo_vehiculo, p.anio_inicio, p.anio_fin, p.motor, p.lado, p.ubicacion,
+                p.costo_compra, p.precio_venta,
+                ROUND(p.precio_venta + (p.precio_venta * p.iva_porcentaje / 100), 2) AS precio_final,
+                p.iva_porcentaje, p.stock_actual, p.stock_minimo,
                 p.stock_maximo, p.estado, c.nombre AS categoria, u.codigo AS unidad
            FROM productos p
            JOIN categorias c ON c.id = p.categoria_id
@@ -65,9 +68,11 @@ try {
     $stmt = $pdo->prepare(
         'INSERT INTO productos
             (categoria_id, unidad_medida_id, sku, codigo_barras, nombre, descripcion,
+             marca_vehiculo, modelo_vehiculo, anio_inicio, anio_fin, motor, lado, ubicacion,
              costo_compra, precio_venta, iva_porcentaje, stock_actual, stock_minimo, stock_maximo, estado)
          VALUES
             (:categoria_id, :unidad_medida_id, :sku, :codigo_barras, :nombre, :descripcion,
+             :marca_vehiculo, :modelo_vehiculo, :anio_inicio, :anio_fin, :motor, :lado, :ubicacion,
              :costo_compra, :precio_venta, :iva_porcentaje, :stock_actual, :stock_minimo, :stock_maximo, "ACTIVO")'
     );
     $stmt->execute([
@@ -77,6 +82,13 @@ try {
         'codigo_barras' => $data['codigoBarras'] ?? null,
         'nombre' => $nombre,
         'descripcion' => $data['descripcion'] ?? null,
+        'marca_vehiculo' => $data['marcaVehiculo'] ?? null,
+        'modelo_vehiculo' => $data['modeloVehiculo'] ?? null,
+        'anio_inicio' => ($data['anioInicio'] ?? null) ?: null,
+        'anio_fin' => ($data['anioFin'] ?? null) ?: null,
+        'motor' => $data['motor'] ?? null,
+        'lado' => $data['lado'] ?? 'NO_APLICA',
+        'ubicacion' => $data['ubicacion'] ?? null,
         'costo_compra' => (float) ($data['costoCompra'] ?? 0),
         'precio_venta' => (float) ($data['precioVenta'] ?? 0),
         'iva_porcentaje' => (float) ($data['ivaPorcentaje'] ?? 0),
