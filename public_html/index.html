@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Multi Parts S&amp;A</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     body { background: #f4f6f9; }
     .brand-logo { width: 52px; height: 52px; object-fit: contain; background: #fff; border-radius: 12px; }
@@ -12,6 +13,14 @@
     .menu-card { cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
     .menu-card:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.12)!important; }
     .module-help { border-left: 4px solid #0d6efd; background: #eef5ff; }
+    .kpi-card { border-left: 4px solid; }
+    .kpi-card.kpi-primary { border-color: #0d6efd; }
+    .kpi-card.kpi-success { border-color: #198754; }
+    .kpi-card.kpi-warning { border-color: #ffc107; }
+    .kpi-card.kpi-danger  { border-color: #dc3545; }
+    .kpi-value { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+    .kpi-label { font-size: .78rem; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; }
+    .kpi-sub   { font-size: .82rem; color: #6c757d; }
     @media (max-width: 576px) { .navbar-brand span { font-size: 1rem; } .container-fluid { padding-left: .75rem; padding-right: .75rem; } }
   </style>
 </head>
@@ -68,6 +77,104 @@
         <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="usuarios"><div class="card-body"><h2 class="h5">👤 Usuarios</h2><p class="mb-0 text-muted">Crea operadores y vendedores.</p></div></div></div>
         <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="bancos"><div class="card-body"><h2 class="h5">🏦 Bancos y pagos</h2><p class="mb-0 text-muted">Registra bancos, depósitos y pagos.</p></div></div></div>
         <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm" data-module="reportes"><div class="card-body"><h2 class="h5">📊 Reportes</h2><p class="mb-0 text-muted">Consulta total vendido y descuentos.</p></div></div></div>
+        <div class="col-12 col-sm-6 col-xl-4"><div class="card menu-card h-100 shadow-sm border-primary" data-module="dashboard"><div class="card-body"><h2 class="h5">📈 Dashboard</h2><p class="mb-0 text-muted">Métricas de ventas en tiempo real.</p></div></div></div>
+      </div>
+    </section>
+
+    <section id="module-dashboard" class="module-view d-none">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+        <h1 class="h3 mb-0">Dashboard de ventas</h1>
+        <button id="dashboardRefreshBtn" class="btn btn-outline-primary btn-sm">↻ Actualizar</button>
+      </div>
+
+      <!-- KPIs -->
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-lg-3">
+          <div class="card shadow-sm kpi-card kpi-primary h-100">
+            <div class="card-body">
+              <div class="kpi-label">Ventas hoy</div>
+              <div class="kpi-value text-primary" id="kpiVentasHoy">—</div>
+              <div class="kpi-sub" id="kpiVentasHoyCant"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="card shadow-sm kpi-card kpi-success h-100">
+            <div class="card-body">
+              <div class="kpi-label">Total este mes</div>
+              <div class="kpi-value text-success" id="kpiVentasMes">—</div>
+              <div class="kpi-sub" id="kpiVentasMesCant"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="card shadow-sm kpi-card kpi-warning h-100">
+            <div class="card-body">
+              <div class="kpi-label">Vs. mes anterior</div>
+              <div class="kpi-value" id="kpiMesAnterior">—</div>
+              <div class="kpi-sub" id="kpiMesAnteriorDiff"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="card shadow-sm kpi-card kpi-danger h-100">
+            <div class="card-body">
+              <div class="kpi-label">Alertas de stock</div>
+              <div class="kpi-value text-danger" id="kpiAlertas">—</div>
+              <div class="kpi-sub" id="kpiAlertasSub"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfica + Método de pago -->
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-8">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Ventas — últimos 7 días</h2>
+              <canvas id="chartVentas7Dias" height="120"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Por método de pago (mes)</h2>
+              <canvas id="chartMetodoPago" height="180"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top productos + Últimas ventas -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Top 5 productos vendidos (mes)</h2>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead><tr><th>Producto</th><th class="text-end">Unid.</th><th class="text-end">Total</th></tr></thead>
+                  <tbody id="dashTopProductos"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Últimas ventas</h2>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead><tr><th>Folio</th><th>Vendedor</th><th>Método</th><th class="text-end">Total</th></tr></thead>
+                  <tbody id="dashUltimasVentas"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -149,6 +256,6 @@
   </main>
 
   <noscript><div class="container"><div class="alert alert-danger">Tu navegador tiene JavaScript desactivado. Actívalo para usar la app.</div></div></noscript>
-  <script src="assets/app.js?v=10"></script>
+  <script src="assets/app.js?v=11"></script>
 </body>
 </html>
