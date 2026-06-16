@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require __DIR__ . '/config.php';
 current_user();
+
+try {
 $pdo = db();
 
 // Ventas hoy
@@ -87,12 +89,15 @@ $stmt = $pdo->query(
 $ultimas_ventas = $stmt->fetchAll();
 
 json_response([
-    'hoy'           => $hoy,
-    'mes'           => $mes,
-    'mes_anterior'  => $mes_anterior,
+    'hoy'            => $hoy,
+    'mes'            => $mes,
+    'mes_anterior'   => $mes_anterior,
     'ultimos_7_dias' => $ultimos_7_dias,
-    'top_productos' => $top_productos,
+    'top_productos'  => $top_productos,
     'por_metodo_pago' => $por_metodo_pago,
-    'inventario'    => $inventario,
+    'inventario'     => $inventario,
     'ultimas_ventas' => $ultimas_ventas,
 ]);
+} catch (\Throwable $e) {
+    json_response(['message' => 'Error en dashboard: ' . $e->getMessage()], 500);
+}
