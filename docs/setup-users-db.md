@@ -269,3 +269,38 @@ https://tudominio.com/SistemadeVentas/public_html/tools/reset_password.php?key=1
 ```
 
 Si cambiaste `SETUP_KEY`, entonces el valor de `key=` en la URL debe ser exactamente igual. Cuando termines de restablecer la contraseña, elimina `reset_password.php` del hosting.
+
+
+## 12. Nuevos módulos: productos, compras, usuarios, reportes, bancos y descuentos
+
+Para habilitar los nuevos módulos en una base ya creada, importa en phpMyAdmin:
+
+```text
+database/migration_cpanel_modules.sql
+```
+
+Ese script agrega:
+
+- descuento en `ventas`;
+- descuento en `detalle_ventas`;
+- tabla `bancos`;
+- tabla `pagos_banco`.
+
+Luego sube estos endpoints nuevos a `public_html/api/`:
+
+```text
+productos.php
+compras.php
+usuarios.php
+reportes.php
+bancos.php
+```
+
+La pantalla principal ahora contempla:
+
+- creación de productos con costo, precio, IVA y stock;
+- ingreso de compras recibidas que suman inventario y registran Kardex;
+- creación de usuarios;
+- venta con descuento;
+- total vendido por rango de fechas;
+- creación de bancos y registro de pagos/depósitos bancarios.

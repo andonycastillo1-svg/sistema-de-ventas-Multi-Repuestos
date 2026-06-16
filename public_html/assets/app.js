@@ -175,7 +175,7 @@
 
       apiFetch('api/venta.php', {
         method: 'POST',
-        body: JSON.stringify({ items: cart, metodoPago: 'EFECTIVO' })
+        body: JSON.stringify({ items: cart, metodoPago: 'EFECTIVO', descuento: Number(byId('ventaDescuento').value || 0) })
       }).then(function (body) {
         cart = [];
         renderCart();
@@ -224,6 +224,145 @@
     });
   }
 
+
+  function formToObject(form) {
+    var data = {};
+    Array.prototype.forEach.call(form.elements, function (element) {
+      if (!element.name) {
+        return;
+      }
+      data[element.name] = element.type === 'number' ? Number(element.value || 0) : element.value;
+    });
+    return data;
+  }
+
+  function renderProducts(productos) {
+    var target = byId('productsList');
+    if (!target) {
+      return;
+    }
+    target.innerHTML = '<strong>Últimos productos:</strong><br>' + productos.slice(0, 8).map(function (p) {
+      return '#' + p.id + ' ' + p.sku + ' - ' + p.nombre + ' | Stock: ' + p.stock_actual + ' | Precio: ' + p.precio_venta;
+    }).join('<br>');
+  }
+
+  function loadProducts() {
+    return apiFetch('api/productos.php').then(function (body) {
+      renderProducts(body.productos || []);
+    });
+  }
+
+  function loadPurchases() {
+    return apiFetch('api/compras.php').then(function (body) {
+      var target = byId('purchasesList');
+      if (!target) {
+        return;
+      }
+      target.innerHTML = '<strong>Últimas compras:</strong><br>' + (body.compras || []).slice(0, 5).map(function (c) {
+        return c.folio + ' | ' + c.proveedor + ' | Total: ' + c.total;
+      }).join('<br>');
+    });
+  }
+
+  function loadBanks() {
+    return apiFetch('api/bancos.php').then(function (body) {
+      var target = byId('banksList');
+      if (!target) {
+        return;
+      }
+      target.innerHTML = '<strong>Bancos:</strong><br>' + (body.bancos || []).map(function (b) {
+        return '#' + b.id + ' ' + b.nombre + ' ' + (b.numero_cuenta || '');
+      }).join('<br>');
+    });
+  }
+
+  function initBusinessModules() {
+    byId('productForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      apiFetch('api/productos.php', { method: 'POST', body: JSON.stringify(formToObject(event.target)) }).then(function (body) {
+        showMessage('success', body.message || 'Producto creado.');
+        event.target.reset();
+        return loadProducts();
+      }).catch(function (error) {
+        showMessage('danger', error.message);
+      });
+    });
+
+    byId('purchaseForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var data = formToObject(event.target);
+      apiFetch('api/compras.php', {
+        method: 'POST',
+        body: JSON.stringify({
+          proveedorNit: data.proveedorNit,
+          proveedorNombre: data.proveedorNombre,
+          items: [{ productoId: data.productoId, cantidad: data.cantidad, costoUnitario: data.costoUnitario }]
+        })
+      }).then(function (body) {
+        showMessage('success', body.message + ' Folio: ' + body.folio);
+        event.target.reset();
+        return Promise.all([loadProducts(), loadPurchases()]);
+      }).catch(function (error) {
+        showMessage('danger', error.message);
+      });
+    });
+
+    byId('userForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      apiFetch('api/usuarios.php', { method: 'POST', body: JSON.stringify(formToObject(event.target)) }).then(function (body) {
+        showMessage('success', body.message || 'Usuario creado.');
+        event.target.reset();
+      }).catch(function (error) {
+        showMessage('danger', error.message);
+      });
+    });
+
+    byId('bankForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var data = formToObject(event.target);
+      data.accion = 'banco';
+      apiFetch('api/bancos.php', { method: 'POST', body: JSON.stringify(data) }).then(function (body) {
+        showMessage('success', body.message || 'Banco creado.');
+        event.target.reset();
+        return loadBanks();
+      }).catch(function (error) {
+        showMessage('danger', error.message);
+      });
+    });
+
+    byId('bankPaymentForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var data = formToObject(event.target);
+      data.accion = 'pago';
+      data.tipo = 'DEPOSITO';
+      apiFetch('api/bancos.php', { method: 'POST', body: JSON.stringify(data) }).then(function (body) {
+        showMessage('success', body.message || 'Pago registrado.');
+        event.target.reset();
+        return loadBanks();
+      }).catch(function (error) {
+        showMessage('danger', error.message);
+      });
+    });
+
+    byId('reportForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var data = formToObject(event.target);
+      var params = new URLSearchParams();
+      if (data.desde) {
+        params.set('desde', data.desde);
+      }
+      if (data.hasta) {
+        params.set('hasta', data.hasta);
+      }
+      apiFetch('api/reportes.php?' + params.toString()).then(function (body) {
+        var v = body.ventas || {};
+        byId('salesReport').textContent = 'Ventas: ' + v.cantidad_ventas + ' | Total vendido: ' + v.total_vendido + ' | Descuentos: ' + v.descuentos;
+      }).catch(function (error) {
+        showMessage('danger', error.message);
+      });
+    });
+  }
+
   function init() {
     window.addEventListener('error', function (event) {
       showMessage('danger', 'Error de JavaScript: ' + event.message);
@@ -237,6 +376,7 @@
     initLogin();
     initCart();
     initHealthCheck();
+    initBusinessModules();
 
     byId('logoutBtn').addEventListener('click', function () {
       token = null;
@@ -247,6 +387,11 @@
 
     setLoggedIn(Boolean(token));
     renderCart();
+    if (token) {
+      loadProducts().catch(function () {});
+      loadPurchases().catch(function () {});
+      loadBanks().catch(function () {});
+    }
     showMessage('secondary', 'Aplicación cargada. Si no puedes entrar, pulsa "Probar conexión".');
   }
 

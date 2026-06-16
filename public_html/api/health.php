@@ -13,6 +13,11 @@ try {
         'api/config.php' => __DIR__ . '/config.php',
         'api/login.php' => __DIR__ . '/login.php',
         'api/venta.php' => __DIR__ . '/venta.php',
+        'api/productos.php' => __DIR__ . '/productos.php',
+        'api/compras.php' => __DIR__ . '/compras.php',
+        'api/usuarios.php' => __DIR__ . '/usuarios.php',
+        'api/reportes.php' => __DIR__ . '/reportes.php',
+        'api/bancos.php' => __DIR__ . '/bancos.php',
         'assets/app.js' => dirname(__DIR__) . '/assets/app.js',
         'index.html' => dirname(__DIR__) . '/index.html',
     ];

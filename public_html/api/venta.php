@@ -81,13 +81,21 @@ try {
         $impuestosVenta = round($impuestosVenta + $impuesto, 2);
     }
 
-    $totalVenta = round($subtotalVenta + $impuestosVenta, 2);
+    $descuentoVenta = round((float) ($data['descuento'] ?? 0), 2);
+    if ($descuentoVenta < 0) {
+        throw new RuntimeException('El descuento no puede ser negativo.');
+    }
+
+    $totalVenta = round($subtotalVenta + $impuestosVenta - $descuentoVenta, 2);
+    if ($totalVenta < 0) {
+        throw new RuntimeException('El descuento no puede ser mayor al total.');
+    }
 
     $stmt = $pdo->prepare(
         'INSERT INTO ventas
-            (folio, usuario_id, usuario_nombre, fecha, estado, subtotal, impuestos, total, metodo_pago, observaciones)
+            (folio, usuario_id, usuario_nombre, fecha, estado, subtotal, impuestos, descuento, total, metodo_pago, observaciones)
          VALUES
-            (:folio, :usuario_id, :usuario_nombre, NOW(), "EMITIDA", :subtotal, :impuestos, :total, :metodo_pago, :observaciones)'
+            (:folio, :usuario_id, :usuario_nombre, NOW(), "EMITIDA", :subtotal, :impuestos, :descuento, :total, :metodo_pago, :observaciones)'
     );
     $stmt->execute([
         'folio' => $folio,
@@ -95,6 +103,7 @@ try {
         'usuario_nombre' => $usuarioSesion['nombre'],
         'subtotal' => $subtotalVenta,
         'impuestos' => $impuestosVenta,
+        'descuento' => $descuentoVenta,
         'total' => $totalVenta,
         'metodo_pago' => $data['metodoPago'] ?? 'EFECTIVO',
         'observaciones' => $data['observaciones'] ?? null,
@@ -156,6 +165,7 @@ try {
         'folio' => $folio,
         'subtotal' => $subtotalVenta,
         'impuestos' => $impuestosVenta,
+        'descuento' => $descuentoVenta,
         'total' => $totalVenta,
     ], 201);
 } catch (Throwable $error) {

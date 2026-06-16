@@ -150,6 +150,7 @@ CREATE TABLE ventas (
   estado ENUM('EMITIDA','ANULADA') NOT NULL DEFAULT 'EMITIDA',
   subtotal DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   impuestos DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  descuento DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   total DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   metodo_pago ENUM('EFECTIVO','TARJETA','TRANSFERENCIA','MIXTO') NOT NULL DEFAULT 'EFECTIVO',
   observaciones VARCHAR(255) NULL,
@@ -174,6 +175,7 @@ CREATE TABLE detalle_ventas (
   iva_porcentaje DECIMAL(5,2) NOT NULL DEFAULT 0.00,
   subtotal DECIMAL(14,2) NOT NULL,
   impuesto DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  descuento DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   total_linea DECIMAL(14,2) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -211,4 +213,38 @@ CREATE TABLE kardex_movimientos (
   INDEX idx_kardex_producto_fecha (producto_id, fecha),
   INDEX idx_kardex_usuario_fecha (usuario_id, fecha),
   INDEX idx_kardex_tipo_fecha (tipo_movimiento, fecha)
+) ENGINE=InnoDB;
+
+
+CREATE TABLE bancos (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nombre VARCHAR(120) NOT NULL,
+  numero_cuenta VARCHAR(80) NULL,
+  moneda VARCHAR(10) NOT NULL DEFAULT 'GTQ',
+  estado ENUM('ACTIVO','INACTIVO') NOT NULL DEFAULT 'ACTIVO',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_bancos_estado (estado)
+) ENGINE=InnoDB;
+
+CREATE TABLE pagos_banco (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  banco_id BIGINT UNSIGNED NOT NULL,
+  usuario_id BIGINT UNSIGNED NOT NULL,
+  usuario_nombre VARCHAR(160) NOT NULL,
+  venta_id BIGINT UNSIGNED NULL,
+  fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  tipo ENUM('DEPOSITO','TRANSFERENCIA','PAGO_VENTA','OTRO') NOT NULL DEFAULT 'DEPOSITO',
+  monto DECIMAL(14,2) NOT NULL,
+  referencia VARCHAR(120) NULL,
+  observaciones VARCHAR(255) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  CONSTRAINT fk_pagos_banco_bancos FOREIGN KEY (banco_id) REFERENCES bancos(id),
+  CONSTRAINT fk_pagos_banco_usuarios FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+  CONSTRAINT fk_pagos_banco_ventas FOREIGN KEY (venta_id) REFERENCES ventas(id),
+  CONSTRAINT chk_pagos_banco_monto CHECK (monto > 0),
+  INDEX idx_pagos_banco_fecha (fecha),
+  INDEX idx_pagos_banco_banco_fecha (banco_id, fecha)
 ) ENGINE=InnoDB;
