@@ -486,3 +486,48 @@ https://tudominio.com/SistemadeVentas/public_html/tools/reset_password.php?key=1
 Escribe el usuario exacto, por ejemplo `csamayoa`, y una nueva contraseña. Luego vuelve al login.
 
 También se ajustó el sistema para limpiar espacios al inicio/final de las contraseñas al crear, diagnosticar, restablecer e iniciar sesión.
+
+
+## 21. Permisos por rol
+
+Se agregó control por rol:
+
+### ADMINISTRADOR
+Puede acceder a todos los módulos:
+
+- Punto de venta;
+- Inventario;
+- Reportes;
+- Productos;
+- Compras;
+- Usuarios;
+- Bancos y pagos.
+
+### VENDEDOR
+Solo debe operar módulos de venta/consulta:
+
+- Punto de venta;
+- Inventario;
+- Reportes.
+
+El vendedor no puede ingresar a:
+
+- Productos;
+- Compras;
+- Usuarios;
+- Bancos y pagos.
+
+Sube estos archivos actualizados:
+
+```text
+public_html/api/config.php
+public_html/api/login.php
+public_html/api/productos.php
+public_html/api/compras.php
+public_html/api/usuarios.php
+public_html/api/bancos.php
+public_html/index.html
+public_html/assets/app.js
+```
+
+Luego cierra sesión y vuelve a entrar para que el sistema cargue el rol del usuario.

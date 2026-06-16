@@ -13,7 +13,7 @@ try {
     $method = $_SERVER['REQUEST_METHOD'];
 
     if ($method === 'GET') {
-        current_user();
+        require_role(['ADMINISTRADOR']);
         $stmt = $pdo->query(
             'SELECT u.id, u.usuario, u.email, u.nombre, u.estado, r.nombre AS rol
                FROM usuarios u
@@ -28,7 +28,7 @@ try {
     }
 
     if (REQUIRE_TOKEN_TO_CREATE_USERS) {
-        current_user();
+        require_role(['ADMINISTRADOR']);
     }
 
     $data = request_json();

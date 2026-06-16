@@ -114,6 +114,29 @@ function current_user(): array
     ], 401);
 }
 
+
+function normalized_role(array $user): string
+{
+    $role = strtoupper((string) ($user['rol'] ?? ''));
+    if ($role === 'ADMIN') {
+        return 'ADMINISTRADOR';
+    }
+    return $role;
+}
+
+function require_role(array $allowedRoles): array
+{
+    $user = current_user();
+    $role = normalized_role($user);
+    $allowed = array_map('strtoupper', $allowedRoles);
+
+    if (!in_array($role, $allowed, true)) {
+        json_response(['message' => 'No tienes permisos para este módulo. Rol requerido: ' . implode(', ', $allowed)], 403);
+    }
+
+    return $user;
+}
+
 function request_json(): array
 {
     $body = file_get_contents('php://input') ?: '{}';

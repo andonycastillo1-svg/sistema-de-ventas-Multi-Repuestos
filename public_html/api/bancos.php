@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/config.php';
-$usuarioSesion = current_user();
+$usuarioSesion = require_role(['ADMINISTRADOR']);
 $pdo = db();
 $method = $_SERVER['REQUEST_METHOD'];
 

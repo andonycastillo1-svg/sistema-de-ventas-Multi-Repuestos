@@ -28,7 +28,7 @@ if ($method !== 'POST') {
     json_response(['message' => 'Método no permitido.'], 405);
 }
 
-current_user();
+require_role(['ADMINISTRADOR']);
 $data = request_json();
 $nombre = trim((string) ($data['nombre'] ?? ''));
 $sku = trim((string) ($data['sku'] ?? ''));

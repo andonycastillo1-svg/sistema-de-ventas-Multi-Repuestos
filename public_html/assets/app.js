@@ -5,6 +5,7 @@
   var cart = [];
   var productsCache = [];
   var purchaseItems = [];
+  var currentUser = JSON.parse(window.localStorage.getItem('currentUser') || 'null');
 
   function byId(id) {
     return document.getElementById(id);
@@ -66,6 +67,23 @@
         section.classList.add('d-none');
       });
     }
+  }
+
+
+  function currentRole() {
+    var role = currentUser && currentUser.rol ? String(currentUser.rol).toUpperCase() : '';
+    return role === 'ADMIN' ? 'ADMINISTRADOR' : role;
+  }
+
+  function applyRolePermissions() {
+    var role = currentRole();
+    var adminOnly = ['productos', 'compras', 'usuarios', 'bancos'];
+
+    adminOnly.forEach(function (moduleName) {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-module="' + moduleName + '"]'), function (element) {
+        element.classList.toggle('d-none', role !== 'ADMINISTRADOR');
+      });
+    });
   }
 
   function renderCart() {
@@ -166,8 +184,11 @@
         }
 
         token = body.token;
+        currentUser = body.usuario || null;
         window.localStorage.setItem('token', token);
+        window.localStorage.setItem('currentUser', JSON.stringify(currentUser));
         setLoggedIn(true);
+        applyRolePermissions();
         showModule('menu');
         showMessage('success', 'Sesión iniciada correctamente.');
       }).catch(function (error) {
@@ -531,7 +552,12 @@
       element.addEventListener('click', function (event) {
         event.preventDefault();
         if (token) {
-          showModule(element.getAttribute('data-module'));
+          var moduleName = element.getAttribute('data-module');
+          if (['productos', 'compras', 'usuarios', 'bancos'].indexOf(moduleName) !== -1 && currentRole() !== 'ADMINISTRADOR') {
+            showMessage('warning', 'Tu rol VENDEDOR no tiene permiso para este módulo.');
+            return;
+          }
+          showModule(moduleName);
         }
       });
     });
@@ -539,11 +565,14 @@
     byId('logoutBtn').addEventListener('click', function () {
       token = null;
       window.localStorage.removeItem('token');
+      window.localStorage.removeItem('currentUser');
+      currentUser = null;
       setLoggedIn(false);
       showMessage('info', 'Sesión cerrada.');
     });
 
     setLoggedIn(Boolean(token));
+    applyRolePermissions();
     if (token) {
       showModule('menu');
     }

@@ -8,7 +8,7 @@ $pdo = db();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    current_user();
+    require_role(['ADMINISTRADOR']);
     $stmt = $pdo->query(
         'SELECT c.id, c.folio, c.factura_numero, p.nombre AS proveedor, c.usuario_nombre, c.fecha, c.estado, c.total
            FROM compras c
@@ -23,7 +23,7 @@ if ($method !== 'POST') {
     json_response(['message' => 'Método no permitido.'], 405);
 }
 
-$usuarioSesion = current_user();
+$usuarioSesion = require_role(['ADMINISTRADOR']);
 $data = request_json();
 $items = $data['items'] ?? [];
 

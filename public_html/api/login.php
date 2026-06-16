@@ -18,9 +18,10 @@ if ($usuario === '' || $password === '') {
 
 $pdo = db();
 $stmt = $pdo->prepare(
-    'SELECT id, usuario, email, nombre, password_hash, estado
-       FROM usuarios
-      WHERE usuario = :usuario OR email = :usuario
+    'SELECT u.id, u.usuario, u.email, u.nombre, u.password_hash, u.estado, r.nombre AS rol
+       FROM usuarios u
+       JOIN roles r ON r.id = u.rol_id
+      WHERE u.usuario = :usuario OR u.email = :usuario
       LIMIT 1'
 );
 $stmt->execute(['usuario' => $usuario]);
@@ -42,6 +43,7 @@ $payload = [
     'sub' => (int) $user['id'],
     'usuario' => $user['usuario'],
     'nombre' => $user['nombre'],
+    'rol' => $user['rol'],
     'iat' => time(),
     'exp' => time() + (8 * 60 * 60),
 ];
@@ -52,5 +54,6 @@ json_response([
         'id' => (int) $user['id'],
         'usuario' => $user['usuario'],
         'nombre' => $user['nombre'],
+        'rol' => $user['rol'],
     ],
 ]);
