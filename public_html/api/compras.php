@@ -83,21 +83,23 @@ try {
         $impuestosCompra = round($impuestosCompra + $impuesto, 2);
     }
 
+    $costoEnvio  = round((float) ($data['costoEnvio'] ?? 0), 2);
     $totalCompra = round($subtotalCompra + $impuestosCompra, 2);
     $stmt = $pdo->prepare(
-        'INSERT INTO compras (folio, factura_numero, proveedor_id, usuario_id, usuario_nombre, fecha, estado, subtotal, impuestos, total, recibido_at)
-         VALUES (:folio, :factura_numero, :proveedor_id, :usuario_id, :usuario_nombre, :fecha, "RECIBIDO", :subtotal, :impuestos, :total, NOW())'
+        'INSERT INTO compras (folio, factura_numero, proveedor_id, usuario_id, usuario_nombre, fecha, estado, subtotal, impuestos, total, costo_envio, recibido_at)
+         VALUES (:folio, :factura_numero, :proveedor_id, :usuario_id, :usuario_nombre, :fecha, "RECIBIDO", :subtotal, :impuestos, :total, :costo_envio, NOW())'
     );
     $stmt->execute([
-        'folio' => $folio,
+        'folio'          => $folio,
         'factura_numero' => $facturaNumero,
-        'fecha' => $fechaCompra . ' 00:00:00',
-        'proveedor_id' => $proveedorId,
-        'usuario_id' => (int) $usuarioSesion['sub'],
+        'fecha'          => $fechaCompra . ' 00:00:00',
+        'proveedor_id'   => $proveedorId,
+        'usuario_id'     => (int) $usuarioSesion['sub'],
         'usuario_nombre' => $usuarioSesion['nombre'],
-        'subtotal' => $subtotalCompra,
-        'impuestos' => $impuestosCompra,
-        'total' => $totalCompra,
+        'subtotal'       => $subtotalCompra,
+        'impuestos'      => $impuestosCompra,
+        'total'          => $totalCompra,
+        'costo_envio'    => $costoEnvio,
     ]);
     $compraId = (int) $pdo->lastInsertId();
 
