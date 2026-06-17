@@ -134,6 +134,7 @@
           <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="compras"><span class="icon">🛒</span>Compras</a></li>
           <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="usuarios"><span class="icon">👤</span>Usuarios</a></li>
           <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="bancos"><span class="icon">🏦</span>Bancos y pagos</a></li>
+          <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="gastos"><span class="icon">💸</span>Gastos operativos</a></li>
         </ul>
 
       </div>
@@ -328,6 +329,8 @@
           <div class="col-6 col-md-2"><input id="purchaseCosto" class="form-control" type="number" step="0.01" placeholder="Costo unitario"></div>
           <div class="col-12 col-md-4"><button id="addPurchaseItemBtn" class="btn btn-outline-primary w-100" type="button">Agregar item a factura</button></div>
           <div class="col-12"><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Producto</th><th class="text-end">Cantidad</th><th class="text-end">Costo</th><th></th></tr></thead><tbody id="purchaseItemsBody"></tbody></table></div></div>
+          <div class="col-12 col-md-6"><label class="form-label">Costo de envío / flete</label><input class="form-control" name="costoEnvio" type="number" step="0.01" min="0" placeholder="0.00" value="0"></div>
+          <div class="col-12 col-md-6 d-flex align-items-end"><span class="text-muted small">Ingresa el costo de flete o envío del proveedor (opcional).</span></div>
           <div class="col-12"><button class="btn btn-primary w-100" type="submit">Guardar factura y cargar inventario</button></div>
         </form><div id="purchasesList" class="small mt-3"></div></div></div>
       </section>
@@ -355,6 +358,60 @@
         <h1 class="h3 fw-bold mb-1">Bancos y pagos</h1>
         <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> crea bancos y registra depósitos, transferencias o pagos asociados.</div>
         <div class="row g-3"><div class="col-12 col-lg-6"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Crear banco</h2><form id="bankForm" class="row g-2"><div class="col-12"><input class="form-control" name="nombre" placeholder="Banco" required></div><div class="col-12"><input class="form-control" name="numeroCuenta" placeholder="Cuenta"></div><div class="col-12"><button class="btn btn-outline-primary w-100" type="submit">Crear banco</button></div></form></div></div></div><div class="col-12 col-lg-6"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Registrar pago a banco</h2><form id="bankPaymentForm" class="row g-2"><div class="col-6"><input class="form-control" name="bancoId" type="number" placeholder="ID banco" required></div><div class="col-6"><input class="form-control" name="monto" type="number" step="0.01" placeholder="Monto" required></div><div class="col-12"><input class="form-control" name="referencia" placeholder="Referencia"></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Registrar pago</button></div></form></div></div></div><div class="col-12"><div id="banksList" class="small"></div></div></div>
+      </section>
+
+      <!-- ===== GASTOS OPERATIVOS ===== -->
+      <section id="module-gastos" class="module-view d-none">
+        <h1 class="h3 fw-bold mb-1">Gastos operativos</h1>
+        <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> registra gastos como renta, luz, comisiones, publicidad, etc. El sistema los descuenta al calcular la ganancia neta.</div>
+        <div class="row g-3">
+          <div class="col-12 col-lg-5">
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <h2 class="h5">Registrar gasto</h2>
+                <form id="gastoForm" class="row g-2">
+                  <div class="col-12 col-md-6"><label class="form-label">Fecha</label><input class="form-control" name="fecha" type="date" required></div>
+                  <div class="col-12 col-md-6"><label class="form-label">Categoría</label>
+                    <select class="form-control" name="categoria">
+                      <option value="Envío / Flete">Envío / Flete</option>
+                      <option value="Renta / Local">Renta / Local</option>
+                      <option value="Servicios">Servicios (luz, agua, internet)</option>
+                      <option value="Salarios">Salarios / Comisiones</option>
+                      <option value="Publicidad">Publicidad</option>
+                      <option value="Mantenimiento">Mantenimiento</option>
+                      <option value="General">General</option>
+                    </select>
+                  </div>
+                  <div class="col-12"><label class="form-label">Descripción</label><input class="form-control" name="descripcion" placeholder="Ej: Flete proveedor ABC, mes de junio..." required></div>
+                  <div class="col-12"><label class="form-label">Monto</label><input class="form-control" name="monto" type="number" step="0.01" min="0.01" placeholder="0.00" required></div>
+                  <div class="col-12"><button class="btn btn-primary w-100" type="submit">Registrar gasto</button></div>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-7">
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                  <h2 class="h5 mb-0">Historial de gastos</h2>
+                  <div class="d-flex gap-2">
+                    <input id="gastoDesde" class="form-control form-control-sm" type="date" style="width:140px">
+                    <input id="gastoHasta" class="form-control form-control-sm" type="date" style="width:140px">
+                    <button id="gastoFiltrarBtn" class="btn btn-outline-primary btn-sm">Filtrar</button>
+                  </div>
+                </div>
+                <div id="gastoResumen" class="row g-2 mb-3"></div>
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light"><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th class="text-end">Monto</th><th></th></tr></thead>
+                    <tbody id="gastosBody"></tbody>
+                    <tfoot><tr class="table-light fw-bold"><td colspan="3" class="text-end">Total:</td><td class="text-end" id="gastosTotal">Q 0.00</td><td></td></tr></tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ===== REPORTES ===== -->
