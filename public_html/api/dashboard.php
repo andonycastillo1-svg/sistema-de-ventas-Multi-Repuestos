@@ -80,6 +80,33 @@ $stmt = $pdo->query(
 );
 $inventario = $stmt->fetch();
 
+// Ganancia bruta este mes (ingresos - costo de ventas)
+$stmt = $pdo->query(
+    'SELECT
+        COALESCE(SUM(v.total), 0) AS ingresos,
+        COALESCE(SUM(dv.cantidad * p.costo_compra), 0) AS costo_ventas
+       FROM detalle_ventas dv
+       JOIN ventas v ON v.id = dv.venta_id
+       JOIN productos p ON p.id = dv.producto_id
+      WHERE v.estado = "EMITIDA"
+        AND YEAR(v.fecha) = YEAR(CURDATE()) AND MONTH(v.fecha) = MONTH(CURDATE())'
+);
+$ganancia_mes = $stmt->fetch();
+
+// Ganancia bruta últimos 7 días (por día)
+$stmt = $pdo->query(
+    'SELECT DATE(v.fecha) AS dia,
+            COALESCE(SUM(v.total), 0) AS ingresos,
+            COALESCE(SUM(dv.cantidad * p.costo_compra), 0) AS costo_ventas
+       FROM detalle_ventas dv
+       JOIN ventas v ON v.id = dv.venta_id
+       JOIN productos p ON p.id = dv.producto_id
+      WHERE v.estado = "EMITIDA" AND v.fecha >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+      GROUP BY DATE(v.fecha)
+      ORDER BY dia'
+);
+$ganancia_7_dias = $stmt->fetchAll();
+
 // Últimas 5 ventas
 $stmt = $pdo->query(
     'SELECT folio, usuario_nombre, fecha, total, metodo_pago
@@ -95,8 +122,10 @@ json_response([
     'ultimos_7_dias' => $ultimos_7_dias,
     'top_productos'  => $top_productos,
     'por_metodo_pago' => $por_metodo_pago,
-    'inventario'     => $inventario,
-    'ultimas_ventas' => $ultimas_ventas,
+    'inventario'      => $inventario,
+    'ultimas_ventas'  => $ultimas_ventas,
+    'ganancia_mes'    => $ganancia_mes,
+    'ganancia_7_dias' => $ganancia_7_dias,
 ]);
 } catch (\Throwable $e) {
     json_response(['message' => 'Error en dashboard: ' . $e->getMessage()], 500);
