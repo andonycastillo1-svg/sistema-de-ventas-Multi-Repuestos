@@ -80,6 +80,23 @@ $stmt = $pdo->query(
 );
 $inventario = $stmt->fetch();
 
+// Envíos de compras del mes
+$stmt = $pdo->query(
+    'SELECT COALESCE(SUM(costo_envio), 0) AS total_envios
+       FROM compras
+      WHERE estado = "RECIBIDO"
+        AND YEAR(fecha) = YEAR(CURDATE()) AND MONTH(fecha) = MONTH(CURDATE())'
+);
+$envios_mes = $stmt->fetch();
+
+// Gastos operativos del mes
+$stmt = $pdo->query(
+    'SELECT COALESCE(SUM(monto), 0) AS total_gastos
+       FROM gastos_operativos
+      WHERE YEAR(fecha) = YEAR(CURDATE()) AND MONTH(fecha) = MONTH(CURDATE())'
+);
+$gastos_mes = $stmt->fetch();
+
 // Ganancia bruta este mes (ingresos - costo de ventas)
 $stmt = $pdo->query(
     'SELECT
@@ -126,6 +143,8 @@ json_response([
     'ultimas_ventas'  => $ultimas_ventas,
     'ganancia_mes'    => $ganancia_mes,
     'ganancia_7_dias' => $ganancia_7_dias,
+    'envios_mes'      => $envios_mes,
+    'gastos_mes'      => $gastos_mes,
 ]);
 } catch (\Throwable $e) {
     json_response(['message' => 'Error en dashboard: ' . $e->getMessage()], 500);
