@@ -47,6 +47,26 @@
     .kpi-label { font-size: .73rem; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .2rem; }
     .kpi-sub   { font-size: .8rem; color: #6c757d; margin-top: .15rem; }
 
+    /* Autocomplete dropdown */
+    .ac-wrap { position: relative; }
+    .ac-dropdown {
+      position: absolute; top: calc(100% + 2px); left: 0; right: 0;
+      z-index: 1060; background: #fff;
+      border: 1px solid #ced4da; border-radius: .5rem;
+      max-height: 280px; overflow-y: auto;
+      box-shadow: 0 6px 20px rgba(0,0,0,.15);
+    }
+    .ac-item {
+      padding: .6rem .85rem; cursor: pointer;
+      border-bottom: 1px solid #f3f4f6; user-select: none;
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:active, .ac-item.ac-hover { background: #e7f1ff; }
+    .ac-item .ac-name { font-weight: 600; font-size: .9rem; }
+    .ac-item .ac-sub  { font-size: .78rem; color: #6c757d; }
+    .ac-item .ac-price{ font-size: .82rem; color: #198754; font-weight: 700; }
+    .ac-empty         { padding: .6rem .85rem; color: #6c757d; font-size: .88rem; }
+
     /* Menu card hover (not needed anymore but keep for safety) */
     .module-help { border-left: 4px solid #0d6efd; background: #eef5ff; }
 
@@ -283,7 +303,7 @@
         <h1 class="h3 fw-bold mb-1">Punto de venta</h1>
         <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> agrega productos por ID, define cantidad, aplica descuento si corresponde y emite la venta.</div>
         <div class="row g-3">
-          <div class="col-12 col-lg-5"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Venta rápida</h2><form id="addItemForm" class="row g-2"><div class="col-12"><label class="form-label" for="productoBusqueda">Producto / repuesto</label><input id="productoBusqueda" class="form-control" list="productosDatalist" placeholder="Escribe nombre, SKU, vehículo..." required><datalist id="productosDatalist"></datalist></div><div class="col-12"><label class="form-label" for="cantidad">Cantidad</label><input id="cantidad" class="form-control" type="number" min="0.001" step="0.001" value="1" required></div><div class="col-12"><button class="btn btn-success w-100" type="submit">Agregar al carrito</button></div></form></div></div></div>
+          <div class="col-12 col-lg-5"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Venta rápida</h2><form id="addItemForm" class="row g-2"><div class="col-12"><label class="form-label">Producto / repuesto</label><div class="ac-wrap"><input id="productoBusqueda" class="form-control" autocomplete="off" placeholder="Escribe nombre, SKU, vehículo..." inputmode="search"><div id="posDropdown" class="ac-dropdown d-none"></div></div></div><div class="col-12"><label class="form-label" for="cantidad">Cantidad</label><input id="cantidad" class="form-control" type="number" min="0.001" step="0.001" value="1" required></div><div class="col-12"><button class="btn btn-success w-100" type="submit">Agregar al carrito</button></div></form></div></div></div>
           <div class="col-12 col-lg-7"><div class="card shadow-sm"><div class="card-body"><h2 class="h5">Carrito</h2><div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Precio unit.</th><th class="text-end">Subtotal</th><th></th></tr></thead><tbody id="cartBody"></tbody><tfoot><tr class="table-light fw-bold"><td colspan="3" class="text-end">Total:</td><td class="text-end" id="cartTotal">Q 0.00</td><td></td></tr></tfoot></table></div><div class="row g-2 mb-3"><div class="col-12 col-md-6"><label class="form-label" for="metodoPago">Forma de pago</label><select id="metodoPago" class="form-control"><option value="EFECTIVO">Efectivo</option><option value="TARJETA">Tarjeta</option><option value="DEPOSITO">Depósito</option><option value="CARGO_EXPRESS">Cargo Express</option><option value="TRANSFERENCIA">Transferencia</option><option value="MIXTO">Mixto</option></select></div><div class="col-12 col-md-6"><label class="form-label" for="ventaDescuento">Descuento de venta</label><input id="ventaDescuento" class="form-control" type="number" min="0" step="0.01" value="0"></div></div><div class="d-flex gap-2 justify-content-end"><button id="clearCartBtn" class="btn btn-outline-secondary" type="button">Limpiar</button><button id="emitSaleBtn" class="btn btn-primary" type="button">Emitir venta</button></div></div></div></div>
         </div>
       </section>
@@ -324,7 +344,7 @@
           <div class="col-12 col-md-3"><input class="form-control" name="proveedorNit" placeholder="NIT proveedor" value="CF"></div>
           <div class="col-12 col-md-3"><input class="form-control" name="proveedorNombre" placeholder="Proveedor" value="Proveedor General"></div>
           <div class="col-12"><hr class="my-2"></div>
-          <div class="col-12 col-md-4"><input id="purchaseProductoBusqueda" class="form-control" list="productosDatalist" placeholder="Producto / repuesto"></div>
+          <div class="col-12 col-md-4"><div class="ac-wrap"><input id="purchaseProductoBusqueda" class="form-control" autocomplete="off" placeholder="Producto / repuesto" inputmode="search"><div id="comprasDropdown" class="ac-dropdown d-none"></div></div></div>
           <div class="col-6 col-md-2"><input id="purchaseCantidad" class="form-control" type="number" step="0.001" placeholder="Cantidad"></div>
           <div class="col-6 col-md-2"><input id="purchaseCosto" class="form-control" type="number" step="0.01" placeholder="Costo unitario"></div>
           <div class="col-12 col-md-4"><button id="addPurchaseItemBtn" class="btn btn-outline-primary w-100" type="button">Agregar item a factura</button></div>
