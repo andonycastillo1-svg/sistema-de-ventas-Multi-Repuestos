@@ -28,5 +28,26 @@ $stmt = $pdo->prepare(
       ORDER BY metodo_pago'
 );
 $stmt->execute(['desde' => $desde, 'hasta' => $hasta]);
+$por_metodo_pago = $stmt->fetchAll();
 
-json_response(['desde' => $desde, 'hasta' => $hasta, 'ventas' => $ventas, 'por_metodo_pago' => $stmt->fetchAll()]);
+// Ganancia bruta: ingresos - costo de ventas
+$stmt = $pdo->prepare(
+    'SELECT
+        COALESCE(SUM(v.total), 0) AS ingresos,
+        COALESCE(SUM(dv.cantidad * p.costo_compra), 0) AS costo_ventas,
+        COALESCE(SUM(v.total), 0) - COALESCE(SUM(dv.cantidad * p.costo_compra), 0) AS ganancia_bruta
+       FROM detalle_ventas dv
+       JOIN ventas v ON v.id = dv.venta_id
+       JOIN productos p ON p.id = dv.producto_id
+      WHERE v.estado = "EMITIDA" AND DATE(v.fecha) BETWEEN :desde AND :hasta'
+);
+$stmt->execute(['desde' => $desde, 'hasta' => $hasta]);
+$ganancia = $stmt->fetch();
+
+json_response([
+    'desde'           => $desde,
+    'hasta'           => $hasta,
+    'ventas'          => $ventas,
+    'por_metodo_pago' => $por_metodo_pago,
+    'ganancia'        => $ganancia,
+]);
