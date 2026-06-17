@@ -103,15 +103,17 @@
       diffEl.style.color = '';
     }
 
-    // Ganancia bruta del mes
-    var ingresos = Number((data.ganancia_mes && data.ganancia_mes.ingresos) || 0);
-    var costo    = Number((data.ganancia_mes && data.ganancia_mes.costo_ventas) || 0);
-    var ganancia = ingresos - costo;
-    var margen   = ingresos > 0 ? ((ganancia / ingresos) * 100).toFixed(1) : '0.0';
-    byId('kpiIngresos').textContent = fmt(ingresos);
-    byId('kpiCosto').textContent    = fmt(costo);
-    byId('kpiGanancia').textContent = fmt(ganancia);
-    byId('kpiGananciaPct').textContent = 'Margen: ' + margen + '%';
+    // Ganancia bruta del mes (ingresos - costo ventas - envíos - gastos operativos)
+    var ingresos      = Number((data.ganancia_mes && data.ganancia_mes.ingresos)      || 0);
+    var costo         = Number((data.ganancia_mes && data.ganancia_mes.costo_ventas)  || 0);
+    var totalEnvios   = Number((data.envios_mes   && data.envios_mes.total_envios)    || 0);
+    var totalGastos   = Number((data.gastos_mes   && data.gastos_mes.total_gastos)    || 0);
+    var ganancia      = ingresos - costo - totalEnvios - totalGastos;
+    var margen        = ingresos > 0 ? ((ganancia / ingresos) * 100).toFixed(1) : '0.0';
+    byId('kpiIngresos').textContent    = fmt(ingresos);
+    byId('kpiCosto').textContent       = fmt(costo + totalEnvios + totalGastos);
+    byId('kpiGanancia').textContent    = fmt(ganancia);
+    byId('kpiGananciaPct').textContent = 'Margen: ' + margen + '% · Envíos: ' + fmt(totalEnvios) + ' · Gastos: ' + fmt(totalGastos);
 
     var sinStock = Number(data.inventario.sin_stock || 0);
     var bajoMin = Number(data.inventario.bajo_minimo || 0);
@@ -463,6 +465,7 @@
         body: JSON.stringify({
           fechaCompra: data.fechaCompra, facturaNumero: data.facturaNumero,
           proveedorNit: data.proveedorNit, proveedorNombre: data.proveedorNombre,
+          costoEnvio: Number(data.costoEnvio || 0),
           items: purchaseItems.map(function (item) {
             return { productoId: item.productoId, cantidad: item.cantidad, costoUnitario: item.costoUnitario };
           })
@@ -586,6 +589,89 @@
     if (refreshBtn) {
       refreshBtn.addEventListener('click', loadDashboard);
     }
+
+    // Gastos operativos
+    var gastoForm = byId('gastoForm');
+    if (gastoForm) {
+      // Default fecha hoy
+      var gastoFechaInput = gastoForm.querySelector('[name="fecha"]');
+      if (gastoFechaInput && !gastoFechaInput.value) {
+        gastoFechaInput.value = new Date().toISOString().slice(0, 10);
+      }
+
+      gastoForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var data = formToObject(gastoForm);
+        apiFetch('api/gastos.php', { method: 'POST', body: JSON.stringify(data) }).then(function (body) {
+          showMessage('success', body.message || 'Gasto registrado.');
+          gastoForm.reset();
+          gastoFechaInput.value = new Date().toISOString().slice(0, 10);
+          loadGastos();
+        }).catch(function (error) { showMessage('danger', error.message); });
+      });
+    }
+
+    var gastoFiltrarBtn = byId('gastoFiltrarBtn');
+    if (gastoFiltrarBtn) {
+      gastoFiltrarBtn.addEventListener('click', function () { loadGastos(); });
+    }
+  }
+
+  function loadGastos() {
+    var desde = byId('gastoDesde') ? byId('gastoDesde').value : '';
+    var hasta = byId('gastoHasta') ? byId('gastoHasta').value : '';
+    if (!desde) {
+      var now = new Date();
+      desde = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01';
+    }
+    if (!hasta) {
+      hasta = new Date().toISOString().slice(0, 10);
+    }
+    var params = new URLSearchParams({ desde: desde, hasta: hasta });
+
+    return apiFetch('api/gastos.php?' + params.toString()).then(function (body) {
+      var gastos = body.gastos || [];
+      var tbody = byId('gastosBody');
+      var totalEl = byId('gastosTotal');
+      var resumenEl = byId('gastoResumen');
+
+      // Resumen por categoría
+      if (resumenEl) {
+        var cats = body.por_categoria || [];
+        var envioTotal = Number(body.total_envios || 0);
+        resumenEl.innerHTML = cats.map(function (c) {
+          return '<div class="col-6 col-md-4 col-lg-3"><div class="card border-0 bg-light py-1 px-2 text-center"><div class="small text-muted">' + c.categoria + '</div><div class="fw-bold">' + fmt(c.total) + '</div></div></div>';
+        }).join('') +
+        (envioTotal > 0 ? '<div class="col-6 col-md-4 col-lg-3"><div class="card border-0 bg-warning bg-opacity-25 py-1 px-2 text-center"><div class="small text-muted">Envíos en compras</div><div class="fw-bold">' + fmt(envioTotal) + '</div></div></div>' : '');
+      }
+
+      // Tabla de gastos
+      var total = 0;
+      if (tbody) {
+        tbody.innerHTML = gastos.length ? gastos.map(function (g) {
+          total += Number(g.monto);
+          return '<tr>' +
+            '<td class="small">' + (g.fecha || '').slice(0, 10) + '</td>' +
+            '<td><span class="badge text-bg-secondary">' + g.categoria + '</span></td>' +
+            '<td>' + g.descripcion + '</td>' +
+            '<td class="text-end">' + fmt(g.monto) + '</td>' +
+            '<td class="text-end"><button class="btn btn-sm btn-outline-danger" data-gasto-id="' + g.id + '">✕</button></td>' +
+            '</tr>';
+        }).join('') : '<tr><td colspan="5" class="text-center text-muted py-3">Sin gastos en este período</td></tr>';
+
+        tbody.addEventListener('click', function (event) {
+          var btn = event.target.closest('[data-gasto-id]');
+          if (!btn) { return; }
+          if (!window.confirm('¿Eliminar este gasto?')) { return; }
+          apiFetch('api/gastos.php?id=' + btn.dataset.gastoId, { method: 'DELETE' }).then(function () {
+            showMessage('success', 'Gasto eliminado.');
+            loadGastos();
+          }).catch(function (error) { showMessage('danger', error.message); });
+        });
+      }
+
+      if (totalEl) { totalEl.textContent = fmt(total); }
+    }).catch(function (error) { showMessage('danger', error.message); });
   }
 
   /* -------- Init -------- */
@@ -608,13 +694,14 @@
         event.preventDefault();
         if (!token) { return; }
         var moduleName = element.getAttribute('data-module');
-        if (['productos', 'compras', 'usuarios', 'bancos'].indexOf(moduleName) !== -1 && currentRole() !== 'ADMINISTRADOR') {
+        if (['productos', 'compras', 'usuarios', 'bancos', 'gastos'].indexOf(moduleName) !== -1 && currentRole() !== 'ADMINISTRADOR') {
           showMessage('warning', 'Tu rol VENDEDOR no tiene permiso para este módulo.');
           return;
         }
         showModule(moduleName);
-        if (moduleName === 'dashboard') { loadDashboard(); }
+        if (moduleName === 'dashboard')  { loadDashboard(); }
         if (moduleName === 'inventario') { loadInventory().catch(function () {}); }
+        if (moduleName === 'gastos')     { loadGastos(); }
       });
     });
 
