@@ -195,6 +195,37 @@
           </div>
         </div>
 
+        <!-- Ganancia bruta -->
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-4">
+            <div class="card shadow-sm kpi-card kpi-primary h-100">
+              <div class="card-body">
+                <div class="kpi-label">Ingresos (ventas mes)</div>
+                <div class="kpi-value text-primary" id="kpiIngresos">—</div>
+                <div class="kpi-sub">Total facturado este mes</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="card shadow-sm kpi-card kpi-warning h-100">
+              <div class="card-body">
+                <div class="kpi-label">Costo de ventas (mes)</div>
+                <div class="kpi-value text-warning" id="kpiCosto">—</div>
+                <div class="kpi-sub">Costo de compra de lo vendido</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="card shadow-sm kpi-card kpi-success h-100" style="border-color:#198754">
+              <div class="card-body">
+                <div class="kpi-label">Ganancia bruta (mes)</div>
+                <div class="kpi-value text-success" id="kpiGanancia">—</div>
+                <div class="kpi-sub" id="kpiGananciaPct"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Charts -->
         <div class="row g-3 mb-4">
           <div class="col-12 col-lg-8">
@@ -330,7 +361,35 @@
       <section id="module-reportes" class="module-view d-none">
         <h1 class="h3 fw-bold mb-1">Reportes</h1>
         <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> consulta el monto total vendido por fecha, incluyendo descuentos.</div>
-        <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Total vendido</h2><form id="reportForm" class="row g-2"><div class="col-12 col-md-6"><input class="form-control" name="desde" type="date"></div><div class="col-12 col-md-6"><input class="form-control" name="hasta" type="date"></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Ver reporte</button></div></form><div id="salesReport" class="mt-3 fw-bold"></div></div></div>
+        <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Total vendido</h2><form id="reportForm" class="row g-2"><div class="col-12 col-md-6"><input class="form-control" name="desde" type="date"></div><div class="col-12 col-md-6"><input class="form-control" name="hasta" type="date"></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Ver reporte</button></div></form><div id="salesReport" class="mt-3"></div>
+              <div id="salesGanancia" class="row g-3 mt-1 d-none">
+                <div class="col-12 col-md-4">
+                  <div class="card kpi-card kpi-primary h-100">
+                    <div class="card-body py-2">
+                      <div class="kpi-label">Ingresos</div>
+                      <div class="kpi-value text-primary" id="reportIngresos">—</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="card kpi-card kpi-warning h-100">
+                    <div class="card-body py-2">
+                      <div class="kpi-label">Costo de ventas</div>
+                      <div class="kpi-value text-warning" id="reportCosto">—</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="card kpi-card kpi-success h-100">
+                    <div class="card-body py-2">
+                      <div class="kpi-label">Ganancia bruta</div>
+                      <div class="kpi-value text-success" id="reportGanancia">—</div>
+                      <div class="kpi-sub" id="reportGananciaPct"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div></div>
       </section>
 
     </main>
