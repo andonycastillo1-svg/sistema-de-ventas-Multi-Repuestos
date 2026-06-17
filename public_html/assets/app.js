@@ -197,6 +197,90 @@
     });
   }
 
+  /* -------- Autocomplete -------- */
+  function makeAutocomplete(inputId, dropdownId, onSelect) {
+    var input    = byId(inputId);
+    var dropdown = byId(dropdownId);
+    if (!input || !dropdown) { return { getSelected: function () { return null; }, clear: function () {} }; }
+
+    var selected = null;
+
+    function hide() { dropdown.classList.add('d-none'); }
+
+    function show(query) {
+      var q = (query || '').toLowerCase().trim();
+      if (q.length < 1) { hide(); return; }
+
+      var results = productsCache.filter(function (p) {
+        return (p.nombre        && p.nombre.toLowerCase().indexOf(q)         !== -1) ||
+               (p.sku           && p.sku.toLowerCase().indexOf(q)            !== -1) ||
+               (p.marca_vehiculo && p.marca_vehiculo.toLowerCase().indexOf(q) !== -1) ||
+               (p.modelo_vehiculo && p.modelo_vehiculo.toLowerCase().indexOf(q) !== -1);
+      }).slice(0, 25);
+
+      if (!results.length) {
+        dropdown.innerHTML = '<div class="ac-empty">Sin resultados para "' + query + '"</div>';
+      } else {
+        dropdown.innerHTML = results.map(function (p) {
+          var vehicle = [p.marca_vehiculo, p.modelo_vehiculo,
+            (p.anio_inicio && p.anio_fin) ? p.anio_inicio + '-' + p.anio_fin : ''
+          ].filter(Boolean).join(' ');
+          var precio = Number(p.precio_final || p.precio_venta || 0);
+          return '<div class="ac-item" data-id="' + p.id + '">' +
+            '<div class="ac-name">' + p.nombre +
+              ' <span style="font-weight:400;color:#6c757d;font-size:.78rem">(' + p.sku + ')</span></div>' +
+            (vehicle ? '<div class="ac-sub">' + vehicle + '</div>' : '') +
+            '<div class="ac-price">' + fmt(precio) +
+              ' &nbsp;·&nbsp; <span style="color:#6c757d">Stock: ' + p.stock_actual + '</span></div>' +
+            '</div>';
+        }).join('');
+      }
+      dropdown.classList.remove('d-none');
+    }
+
+    input.addEventListener('input', function () {
+      selected = null;
+      show(input.value);
+    });
+
+    input.addEventListener('focus', function () {
+      if (input.value) { show(input.value); }
+    });
+
+    // mousedown prevents blur before click fires (desktop)
+    dropdown.addEventListener('mousedown', function (e) { e.preventDefault(); });
+
+    function pickItem(el) {
+      var id = Number(el.dataset.id);
+      var product = productsCache.find(function (p) { return p.id === id; });
+      if (!product) { return; }
+      selected = product;
+      input.value = product.nombre + ' (' + product.sku + ')';
+      hide();
+      if (onSelect) { onSelect(product); }
+    }
+
+    // click (desktop) + touchend (mobile)
+    dropdown.addEventListener('click', function (e) {
+      var item = e.target.closest('.ac-item');
+      if (item) { pickItem(item); }
+    });
+
+    dropdown.addEventListener('touchend', function (e) {
+      var item = e.target.closest('.ac-item');
+      if (item) { e.preventDefault(); pickItem(item); }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) { hide(); }
+    });
+
+    return {
+      getSelected: function () { return selected; },
+      clear: function () { selected = null; input.value = ''; hide(); }
+    };
+  }
+
   /* -------- Cart -------- */
   function renderCart() {
     var cartBody = byId('cartBody');
@@ -348,18 +432,14 @@
   }
 
   function renderProducts(productos) {
-    var target = byId('productsList');
-    var datalist = byId('productosDatalist');
     productsCache = productos || [];
-    if (datalist) {
-      datalist.innerHTML = productsCache.map(function (p) {
-        return '<option value="' + productLabel(p).replace(/"/g, '&quot;') + '">';
-      }).join('');
-    }
+    var target = byId('productsList');
     if (!target) { return; }
-    target.innerHTML = '<strong>Últimos repuestos:</strong><br>' + productsCache.slice(0, 8).map(function (p) {
-      return productLabel(p) + ' | Stock: ' + p.stock_actual + ' | Costo: ' + p.costo_compra + ' | Precio final: ' + p.precio_final;
-    }).join('<br>');
+    target.innerHTML = productsCache.length
+      ? '<strong>Últimos repuestos:</strong><br>' + productsCache.slice(0, 8).map(function (p) {
+          return productLabel(p) + ' | Stock: ' + p.stock_actual + ' | Precio: ' + fmt(p.precio_final || p.precio_venta || 0);
+        }).join('<br>')
+      : '<span class="text-muted">Sin productos registrados.</span>';
   }
 
   function loadProducts() {
@@ -425,6 +505,14 @@
 
   /* -------- Business modules -------- */
   function initBusinessModules() {
+    // Autocomplete para POS y Compras
+    var posAC = makeAutocomplete('productoBusqueda', 'posDropdown', null);
+    var comprasAC = makeAutocomplete('purchaseProductoBusqueda', 'comprasDropdown', function (product) {
+      // Precarga el costo al seleccionar en compras
+      var costoInput = byId('purchaseCosto');
+      if (costoInput && product.costo_compra) { costoInput.value = Number(product.costo_compra).toFixed(2); }
+    });
+
     byId('productForm').addEventListener('submit', function (event) {
       event.preventDefault();
       apiFetch('api/productos.php', { method: 'POST', body: JSON.stringify(formToObject(event.target)) }).then(function (body) {
@@ -435,15 +523,15 @@
     });
 
     byId('addPurchaseItemBtn').addEventListener('click', function () {
-      var product = selectedProductIdFromInput('purchaseProductoBusqueda');
+      var product = comprasAC.getSelected();
       var cantidad = Number(byId('purchaseCantidad').value || 0);
       var costoUnitario = Number(byId('purchaseCosto').value || 0);
       if (!product || cantidad <= 0 || costoUnitario < 0) {
         showMessage('danger', 'Selecciona un repuesto válido, cantidad y costo para agregarlo a la factura.');
         return;
       }
-      purchaseItems.push({ productoId: product.id, nombre: product.label, cantidad: cantidad, costoUnitario: costoUnitario });
-      byId('purchaseProductoBusqueda').value = '';
+      purchaseItems.push({ productoId: product.id, nombre: product.nombre + ' (' + product.sku + ')', cantidad: cantidad, costoUnitario: costoUnitario });
+      comprasAC.clear();
       byId('purchaseCantidad').value = '';
       byId('purchaseCosto').value = '';
       renderPurchaseItems();
@@ -481,21 +569,19 @@
 
     byId('addItemForm').addEventListener('submit', function (event) {
       event.preventDefault();
-      var selected = byId('productoBusqueda').value;
-      var match = selected.match(/^#(\d+)/);
-      if (!match) { showMessage('danger', 'Selecciona un producto válido de la lista por nombre/SKU.'); return; }
-      var productoId = Number(match[1]);
-      var producto = productsCache.find(function (p) { return p.id === productoId; });
+      var producto = posAC.getSelected();
+      if (!producto) { showMessage('danger', 'Selecciona un producto de la lista antes de agregar.'); return; }
+      var cantidad = Number(byId('cantidad').value);
+      if (cantidad <= 0) { showMessage('danger', 'La cantidad debe ser mayor a 0.'); return; }
       cart.push({
-        productoId: productoId,
-        nombre: selected,
-        cantidad: Number(byId('cantidad').value),
-        precioFinal: producto ? Number(producto.precio_final || producto.precio_venta || 0) : 0
+        productoId: producto.id,
+        nombre: producto.nombre + ' (' + producto.sku + ')',
+        cantidad: cantidad,
+        precioFinal: Number(producto.precio_final || producto.precio_venta || 0)
       });
       renderCart();
-      event.target.reset();
       byId('cantidad').value = 1;
-      byId('productoBusqueda').value = '';
+      posAC.clear();
     });
 
     byId('cartBody').addEventListener('click', function (event) {
