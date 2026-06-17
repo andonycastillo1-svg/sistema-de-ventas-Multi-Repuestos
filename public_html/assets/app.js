@@ -189,13 +189,25 @@
   function renderCart() {
     var cartBody = byId('cartBody');
     cartBody.innerHTML = '';
+    var total = 0;
+
     cart.forEach(function (item, index) {
+      var precioUnit = Number(item.precioFinal || 0);
+      var subtotal = precioUnit * Number(item.cantidad);
+      total += subtotal;
+
       var row = document.createElement('tr');
-      row.innerHTML = '<td>' + (item.nombre || item.productoId) + '</td>' +
+      row.innerHTML =
+        '<td>' + (item.nombre || item.productoId) + '</td>' +
         '<td class="text-end">' + item.cantidad + '</td>' +
+        '<td class="text-end">' + fmt(precioUnit) + '</td>' +
+        '<td class="text-end fw-semibold">' + fmt(subtotal) + '</td>' +
         '<td class="text-end"><button class="btn btn-sm btn-outline-danger" data-index="' + index + '">Quitar</button></td>';
       cartBody.appendChild(row);
     });
+
+    var cartTotalEl = byId('cartTotal');
+    if (cartTotalEl) { cartTotalEl.textContent = fmt(total); }
   }
 
   /* -------- API -------- */
@@ -459,7 +471,14 @@
       var selected = byId('productoBusqueda').value;
       var match = selected.match(/^#(\d+)/);
       if (!match) { showMessage('danger', 'Selecciona un producto válido de la lista por nombre/SKU.'); return; }
-      cart.push({ productoId: Number(match[1]), nombre: selected, cantidad: Number(byId('cantidad').value) });
+      var productoId = Number(match[1]);
+      var producto = productsCache.find(function (p) { return p.id === productoId; });
+      cart.push({
+        productoId: productoId,
+        nombre: selected,
+        cantidad: Number(byId('cantidad').value),
+        precioFinal: producto ? Number(producto.precio_final || producto.precio_venta || 0) : 0
+      });
       renderCart();
       event.target.reset();
       byId('cantidad').value = 1;
