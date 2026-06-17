@@ -103,6 +103,16 @@
       diffEl.style.color = '';
     }
 
+    // Ganancia bruta del mes
+    var ingresos = Number((data.ganancia_mes && data.ganancia_mes.ingresos) || 0);
+    var costo    = Number((data.ganancia_mes && data.ganancia_mes.costo_ventas) || 0);
+    var ganancia = ingresos - costo;
+    var margen   = ingresos > 0 ? ((ganancia / ingresos) * 100).toFixed(1) : '0.0';
+    byId('kpiIngresos').textContent = fmt(ingresos);
+    byId('kpiCosto').textContent    = fmt(costo);
+    byId('kpiGanancia').textContent = fmt(ganancia);
+    byId('kpiGananciaPct').textContent = 'Margen: ' + margen + '%';
+
     var sinStock = Number(data.inventario.sin_stock || 0);
     var bajoMin = Number(data.inventario.bajo_minimo || 0);
     byId('kpiAlertas').textContent = sinStock + bajoMin;
@@ -552,8 +562,23 @@
       if (data.hasta) { params.set('hasta', data.hasta); }
       apiFetch('api/reportes.php?' + params.toString()).then(function (body) {
         var v = body.ventas || {};
-        var methods = (body.por_metodo_pago || []).map(function (m) { return m.metodo_pago + ': ' + m.total; }).join(' | ');
-        byId('salesReport').textContent = 'Ventas: ' + v.cantidad_ventas + ' | Total vendido: ' + v.total_vendido + ' | Descuentos: ' + v.descuentos + (methods ? ' | Pagos: ' + methods : '');
+        var methods = (body.por_metodo_pago || []).map(function (m) {
+          return '<span class="badge text-bg-secondary me-1">' + m.metodo_pago + '</span> ' + fmt(m.total);
+        }).join(' &nbsp; ');
+        byId('salesReport').innerHTML =
+          '<div class="fw-bold mb-2">Ventas: ' + v.cantidad_ventas + ' &nbsp;|&nbsp; Total: ' + fmt(v.total_vendido) + ' &nbsp;|&nbsp; Descuentos: ' + fmt(v.descuentos) + '</div>' +
+          (methods ? '<div class="small mb-2">' + methods + '</div>' : '');
+
+        var g = body.ganancia || {};
+        var ing  = Number(g.ingresos     || 0);
+        var cos  = Number(g.costo_ventas || 0);
+        var gan  = Number(g.ganancia_bruta || (ing - cos));
+        var pct  = ing > 0 ? ((gan / ing) * 100).toFixed(1) : '0.0';
+        byId('reportIngresos').textContent = fmt(ing);
+        byId('reportCosto').textContent    = fmt(cos);
+        byId('reportGanancia').textContent = fmt(gan);
+        byId('reportGananciaPct').textContent = 'Margen: ' + pct + '%';
+        byId('salesGanancia').classList.remove('d-none');
       }).catch(function (error) { showMessage('danger', error.message); });
     });
 
