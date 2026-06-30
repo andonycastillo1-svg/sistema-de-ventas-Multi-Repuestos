@@ -207,16 +207,31 @@
 
     function hide() { dropdown.classList.add('d-none'); }
 
-    function show(query) {
+    function renderDropdown(query) {
       var q = (query || '').toLowerCase().trim();
-      if (q.length < 1) { hide(); return; }
+
+      if (productsCache.length === 0) {
+        dropdown.innerHTML = '<div class="ac-empty">⚠️ Sin productos cargados. ' +
+          '<span id="acReload-' + inputId + '" style="color:#0d6efd;cursor:pointer;text-decoration:underline">Recargar</span></div>';
+        dropdown.classList.remove('d-none');
+        var reloadBtn = document.getElementById('acReload-' + inputId);
+        if (reloadBtn) {
+          reloadBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            loadProducts().then(function () { renderDropdown(input.value); }).catch(function () {});
+          });
+        }
+        return;
+      }
+
+      if (q.length === 0) { hide(); return; }
 
       var results = productsCache.filter(function (p) {
-        return (p.nombre        && p.nombre.toLowerCase().indexOf(q)         !== -1) ||
-               (p.sku           && p.sku.toLowerCase().indexOf(q)            !== -1) ||
-               (p.marca_vehiculo && p.marca_vehiculo.toLowerCase().indexOf(q) !== -1) ||
+        return (p.nombre         && p.nombre.toLowerCase().indexOf(q)          !== -1) ||
+               (p.sku            && p.sku.toLowerCase().indexOf(q)             !== -1) ||
+               (p.marca_vehiculo && p.marca_vehiculo.toLowerCase().indexOf(q)  !== -1) ||
                (p.modelo_vehiculo && p.modelo_vehiculo.toLowerCase().indexOf(q) !== -1);
-      }).slice(0, 25);
+      }).slice(0, 30);
 
       if (!results.length) {
         dropdown.innerHTML = '<div class="ac-empty">Sin resultados para "' + query + '"</div>';
@@ -238,18 +253,6 @@
       dropdown.classList.remove('d-none');
     }
 
-    input.addEventListener('input', function () {
-      selected = null;
-      show(input.value);
-    });
-
-    input.addEventListener('focus', function () {
-      if (input.value) { show(input.value); }
-    });
-
-    // mousedown prevents blur before click fires (desktop)
-    dropdown.addEventListener('mousedown', function (e) { e.preventDefault(); });
-
     function pickItem(el) {
       var id = Number(el.dataset.id);
       var product = productsCache.find(function (p) { return p.id === id; });
@@ -260,16 +263,43 @@
       if (onSelect) { onSelect(product); }
     }
 
-    // click (desktop) + touchend (mobile)
+    // Escucha todos los eventos que pueden ocurrir al escribir
+    ['input', 'keyup', 'compositionend'].forEach(function (evt) {
+      input.addEventListener(evt, function () {
+        selected = null;
+        renderDropdown(input.value);
+      });
+    });
+
+    // Mostrar dropdown al tocar/enfocar el campo
+    input.addEventListener('focus', function () {
+      if (input.value.length > 0 || productsCache.length === 0) {
+        renderDropdown(input.value);
+      }
+    });
+
+    input.addEventListener('click', function () {
+      if (productsCache.length === 0) { renderDropdown(''); }
+    });
+
+    // Previene que el blur cierre el dropdown antes de registrar el toque (desktop)
+    dropdown.addEventListener('mousedown', function (e) { e.preventDefault(); });
+
+    // Selección por click (desktop) y touchend (móvil)
     dropdown.addEventListener('click', function (e) {
       var item = e.target.closest('.ac-item');
       if (item) { pickItem(item); }
     });
 
     dropdown.addEventListener('touchend', function (e) {
-      var item = e.target.closest('.ac-item');
+      var item = e.target.closest('.ac-item[data-id]');
       if (item) { e.preventDefault(); pickItem(item); }
     });
+
+    // Cerrar si toca fuera
+    document.addEventListener('touchstart', function (e) {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) { hide(); }
+    }, { passive: true });
 
     document.addEventListener('click', function (e) {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) { hide(); }
@@ -822,7 +852,9 @@
     if (token) {
       showModule('dashboard');
       loadDashboard();
-      loadProducts().catch(function () {});
+      loadProducts().catch(function (err) {
+        showMessage('warning', 'No se pudieron cargar los productos: ' + (err && err.message || 'error desconocido'));
+      });
       loadPurchases().catch(function () {});
       loadBanks().catch(function () {});
       loadInventory().catch(function () {});
