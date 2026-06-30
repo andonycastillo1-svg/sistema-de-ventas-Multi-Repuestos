@@ -8,19 +8,37 @@ $pdo = db();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    $stmt = $pdo->query(
-        'SELECT p.id, p.sku, p.codigo_barras, p.nombre, p.descripcion, p.marca_vehiculo,
-                p.modelo_vehiculo, p.anio_inicio, p.anio_fin, p.motor, p.lado, p.ubicacion,
-                p.costo_compra, p.precio_venta,
-                ROUND(p.precio_venta + (p.precio_venta * p.iva_porcentaje / 100), 2) AS precio_final,
-                p.iva_porcentaje, p.stock_actual, p.stock_minimo,
-                p.stock_maximo, p.estado, c.nombre AS categoria, u.codigo AS unidad
-           FROM productos p
-           JOIN categorias c ON c.id = p.categoria_id
-           JOIN unidades_medida u ON u.id = p.unidad_medida_id
-          ORDER BY p.id DESC
-          LIMIT 200'
-    );
+    try {
+        $stmt = $pdo->query(
+            'SELECT p.id, p.sku, p.codigo_barras, p.nombre, p.descripcion,
+                    p.marca_vehiculo, p.modelo_vehiculo, p.anio_inicio, p.anio_fin,
+                    p.motor, p.lado, p.ubicacion,
+                    p.costo_compra, p.precio_venta,
+                    ROUND(p.precio_venta + (p.precio_venta * p.iva_porcentaje / 100), 2) AS precio_final,
+                    p.iva_porcentaje, p.stock_actual, p.stock_minimo, p.stock_maximo,
+                    p.estado, c.nombre AS categoria, u.codigo AS unidad
+               FROM productos p
+               JOIN categorias c ON c.id = p.categoria_id
+               JOIN unidades_medida u ON u.id = p.unidad_medida_id
+              ORDER BY p.id DESC LIMIT 200'
+        );
+    } catch (\Throwable $e) {
+        // Columnas de vehículo aún no migradas: consulta básica
+        $stmt = $pdo->query(
+            'SELECT p.id, p.sku, p.nombre,
+                    NULL AS marca_vehiculo, NULL AS modelo_vehiculo,
+                    NULL AS anio_inicio, NULL AS anio_fin,
+                    NULL AS motor, "NO_APLICA" AS lado, NULL AS ubicacion,
+                    p.costo_compra, p.precio_venta,
+                    ROUND(p.precio_venta + (p.precio_venta * p.iva_porcentaje / 100), 2) AS precio_final,
+                    p.iva_porcentaje, p.stock_actual, p.stock_minimo, p.stock_maximo,
+                    p.estado, c.nombre AS categoria, u.codigo AS unidad
+               FROM productos p
+               JOIN categorias c ON c.id = p.categoria_id
+               JOIN unidades_medida u ON u.id = p.unidad_medida_id
+              ORDER BY p.id DESC LIMIT 200'
+        );
+    }
     json_response(['productos' => $stmt->fetchAll()]);
 }
 
