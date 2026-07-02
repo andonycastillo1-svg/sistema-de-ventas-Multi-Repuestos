@@ -523,11 +523,23 @@
       }
       if (tbody) {
         tbody.innerHTML = (body.productos || []).map(function (p) {
-          var badge = p.alerta === 'SIN_STOCK' ? 'danger' : (p.alerta === 'BAJO_MINIMO' ? 'warning' : 'success');
+          var alertBadge = p.alerta === 'SIN_STOCK' ? 'danger' : (p.alerta === 'BAJO_MINIMO' ? 'warning' : 'success');
           var vehicle = [p.marca_vehiculo, p.modelo_vehiculo, p.anio_inicio && p.anio_fin ? p.anio_inicio + '-' + p.anio_fin : '', p.motor].filter(Boolean).join(' ');
-          return '<tr><td>#' + p.id + ' ' + p.sku + ' - ' + p.nombre + '</td><td>' + vehicle + '</td><td>' + (p.ubicacion || '') + '</td>' +
-            '<td class="text-end">' + p.stock_actual + '</td><td class="text-end">' + p.stock_minimo + '</td>' +
-            '<td><span class="badge text-bg-' + badge + '">' + p.alerta + '</span></td></tr>';
+          var costo  = Number(p.costo_compra  || 0);
+          var precio = Number(p.precio_venta  || 0);
+          var margen = precio > 0 ? ((precio - costo) / precio * 100) : 0;
+          var margenColor = margen >= 30 ? 'success' : (margen >= 15 ? 'warning' : 'danger');
+          var margenTxt   = precio > 0 ? margen.toFixed(1) + '%' : '—';
+          return '<tr>' +
+            '<td><span class="text-muted small">' + p.sku + '</span><br>' + p.nombre + '</td>' +
+            '<td class="small">' + vehicle + '</td>' +
+            '<td class="small">' + (p.ubicacion || '') + '</td>' +
+            '<td class="text-end">' + p.stock_actual + '</td>' +
+            '<td class="text-end">' + fmt(costo) + '</td>' +
+            '<td class="text-end">' + fmt(precio) + '</td>' +
+            '<td class="text-end"><span class="badge text-bg-' + margenColor + '">' + margenTxt + '</span></td>' +
+            '<td><span class="badge text-bg-' + alertBadge + '">' + p.alerta + '</span></td>' +
+            '</tr>';
         }).join('');
       }
     });
