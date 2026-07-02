@@ -42,6 +42,54 @@ if ($method === 'GET') {
     json_response(['productos' => $stmt->fetchAll()]);
 }
 
+if ($method === 'PUT') {
+    require_role(['ADMINISTRADOR']);
+    $data = request_json();
+    $id   = (int) ($data['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['message' => 'ID de producto requerido.'], 400);
+    }
+    $nombre = trim((string) ($data['nombre'] ?? ''));
+    $sku    = trim((string) ($data['sku']    ?? ''));
+    if ($nombre === '' || $sku === '') {
+        json_response(['message' => 'SKU y nombre son requeridos.'], 400);
+    }
+    try {
+        $stmt = $pdo->prepare(
+            'UPDATE productos SET
+               sku = :sku, nombre = :nombre, descripcion = :descripcion,
+               marca_vehiculo = :marca_vehiculo, modelo_vehiculo = :modelo_vehiculo,
+               anio_inicio = :anio_inicio, anio_fin = :anio_fin,
+               motor = :motor, lado = :lado, ubicacion = :ubicacion,
+               costo_compra = :costo_compra, precio_venta = :precio_venta,
+               iva_porcentaje = :iva_porcentaje,
+               stock_minimo = :stock_minimo, stock_maximo = :stock_maximo
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            'id'              => $id,
+            'sku'             => $sku,
+            'nombre'          => $nombre,
+            'descripcion'     => $data['descripcion'] ?? null,
+            'marca_vehiculo'  => $data['marcaVehiculo'] ?? null,
+            'modelo_vehiculo' => $data['modeloVehiculo'] ?? null,
+            'anio_inicio'     => ($data['anioInicio'] ?? null) ?: null,
+            'anio_fin'        => ($data['anioFin']    ?? null) ?: null,
+            'motor'           => $data['motor']    ?? null,
+            'lado'            => $data['lado']     ?? 'NO_APLICA',
+            'ubicacion'       => $data['ubicacion'] ?? null,
+            'costo_compra'    => (float) ($data['costoCompra']  ?? 0),
+            'precio_venta'    => (float) ($data['precioVenta']  ?? 0),
+            'iva_porcentaje'  => (float) ($data['ivaPorcentaje'] ?? 0),
+            'stock_minimo'    => (float) ($data['stockMinimo']  ?? 0),
+            'stock_maximo'    => (float) ($data['stockMaximo']  ?? 0),
+        ]);
+        json_response(['message' => 'Producto actualizado.']);
+    } catch (Throwable $error) {
+        json_response(['message' => $error->getMessage()], 400);
+    }
+}
+
 if ($method !== 'POST') {
     json_response(['message' => 'Método no permitido.'], 405);
 }
