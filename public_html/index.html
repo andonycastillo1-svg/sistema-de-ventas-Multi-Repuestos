@@ -525,7 +525,43 @@
     </main>
   </div>
 
+  <!-- Modal editar producto -->
+  <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editProductModalLabel">Editar producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editProductForm" class="row g-2">
+            <input type="hidden" name="id">
+            <div class="col-12 col-md-4"><input class="form-control" name="sku" placeholder="SKU / Código" required></div>
+            <div class="col-12 col-md-8"><input class="form-control" name="nombre" placeholder="Nombre del repuesto" required></div>
+            <div class="col-12 col-md-4"><input class="form-control" name="marcaVehiculo" placeholder="Marca vehículo"></div>
+            <div class="col-12 col-md-4"><input class="form-control" name="modeloVehiculo" placeholder="Modelo vehículo"></div>
+            <div class="col-6 col-md-2"><input class="form-control" name="anioInicio" type="number" placeholder="Año inicio"></div>
+            <div class="col-6 col-md-2"><input class="form-control" name="anioFin" type="number" placeholder="Año fin"></div>
+            <div class="col-12 col-md-4"><input class="form-control" name="motor" placeholder="Motor / versión"></div>
+            <div class="col-12 col-md-4"><select class="form-control" name="lado"><option value="NO_APLICA">No aplica lado</option><option value="IZQUIERDO">Izquierdo</option><option value="DERECHO">Derecho</option><option value="DELANTERO">Delantero</option><option value="TRASERO">Trasero</option></select></div>
+            <div class="col-12 col-md-4"><input class="form-control" name="ubicacion" placeholder="Ubicación en bodega"></div>
+            <div class="col-6 col-md-4"><input class="form-control" name="costoCompra" type="number" step="0.01" placeholder="Costo compra" required></div>
+            <div class="col-6 col-md-4"><input class="form-control" name="precioVenta" type="number" step="0.01" placeholder="Precio sin IVA" required></div>
+            <div class="col-6 col-md-4"><input class="form-control" name="ivaPorcentaje" type="number" step="0.01" placeholder="IVA %" value="0"></div>
+            <div class="col-6 col-md-4"><input class="form-control" name="stockMinimo" type="number" step="0.001" placeholder="Stock mín."></div>
+            <div class="col-6 col-md-4"><input class="form-control" name="stockMaximo" type="number" step="0.001" placeholder="Stock máx."></div>
+            <div id="editProductMsg" class="col-12 d-none"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" form="editProductForm" class="btn btn-primary" id="editProductSaveBtn">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <noscript><div class="container"><div class="alert alert-danger mt-4">Tu navegador tiene JavaScript desactivado. Actívalo para usar la app.</div></div></noscript>
-  <script src="assets/app.js?v=12"></script>
+  <script src="assets/app.js?v=14"></script>
 </body>
 </html>
