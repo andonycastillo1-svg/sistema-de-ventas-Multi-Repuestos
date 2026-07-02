@@ -773,6 +773,13 @@
     if (gastoFiltrarBtn) {
       gastoFiltrarBtn.addEventListener('click', function () { loadGastos(); });
     }
+
+    // Cuentas por pagar — botones de filtro
+    Array.prototype.forEach.call(document.querySelectorAll('.cuenta-filtro'), function (btn) {
+      btn.addEventListener('click', function () {
+        loadCuentas(btn.getAttribute('data-filtro'));
+      });
+    });
   }
 
   function loadGastos() {
@@ -832,6 +839,97 @@
     }).catch(function (error) { showMessage('danger', error.message); });
   }
 
+  /* -------- Cuentas por pagar -------- */
+  var cuentasFiltro = 'pendiente';
+
+  function loadCuentas(filtro) {
+    if (filtro) { cuentasFiltro = filtro; }
+    apiFetch('api/cuentas.php?filtro=' + encodeURIComponent(cuentasFiltro))
+      .then(function (data) {
+        var r = data.resumen || {};
+        var setKpi = function (id, val) { if (byId(id)) { byId(id).textContent = val; } };
+        setKpi('kpiDeudaTotal',      fmt(r.total_pendiente   || 0));
+        setKpi('kpiDeudaCant',       (r.cant_pendiente || 0) + ' compra(s) pendiente(s)');
+        setKpi('kpiDeudaVencida',    fmt(r.total_vencido     || 0));
+        setKpi('kpiDeudaVencidaCant', (r.cant_vencido || 0) + ' compra(s) vencida(s)');
+        setKpi('kpiDeuda7dias',      fmt(r.vence_7_dias      || 0));
+
+        // Filtro botones activos
+        Array.prototype.forEach.call(document.querySelectorAll('.cuenta-filtro'), function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-filtro') === cuentasFiltro);
+        });
+
+        var lista = byId('cuentasLista');
+        if (!lista) { return; }
+        if (!data.compras || data.compras.length === 0) {
+          lista.innerHTML = '<div class="col-12"><div class="alert alert-info">No hay compras para mostrar.</div></div>';
+          return;
+        }
+
+        lista.innerHTML = data.compras.map(function (c) {
+          var dias = parseInt(c.dias_restantes, 10);
+          var isPendiente = c.estado_pago === 'PENDIENTE';
+          var badge, badgeClass;
+          if (!isPendiente) {
+            badge = 'Pagada ' + (c.fecha_pago || '');
+            badgeClass = 'bg-success';
+          } else if (dias < 0) {
+            badge = 'Vencida hace ' + Math.abs(dias) + ' día(s)';
+            badgeClass = 'bg-danger';
+          } else if (dias <= 7) {
+            badge = 'Vence en ' + dias + ' día(s)';
+            badgeClass = 'bg-warning text-dark';
+          } else {
+            badge = 'Vence en ' + dias + ' día(s)';
+            badgeClass = 'bg-info text-dark';
+          }
+
+          var pagarHtml = '';
+          if (isPendiente) {
+            pagarHtml = '<div class="mt-2 d-flex gap-2 align-items-center flex-wrap">'
+              + '<input type="date" class="form-control form-control-sm w-auto" id="fp-' + c.id + '" value="' + new Date().toISOString().slice(0,10) + '">'
+              + '<button class="btn btn-success btn-sm btn-pagar" data-id="' + c.id + '">✔ Marcar pagada</button>'
+              + '</div>';
+          }
+
+          return '<div class="col-12 col-md-6 col-lg-4">'
+            + '<div class="card shadow-sm h-100 border-' + (isPendiente ? (dias < 0 ? 'danger' : 'warning') : 'success') + '">'
+            + '<div class="card-body">'
+            + '<div class="d-flex justify-content-between align-items-start mb-1">'
+            + '<strong>' + c.folio + '</strong>'
+            + '<span class="badge ' + badgeClass + '">' + badge + '</span>'
+            + '</div>'
+            + '<div class="text-muted small mb-1">' + c.proveedor + (c.factura_numero ? ' · Fact: ' + c.factura_numero : '') + '</div>'
+            + '<div class="small mb-1">Compra: ' + (c.fecha_compra || '') + ' &nbsp;|&nbsp; Vence: ' + (c.fecha_vencimiento || '—') + '</div>'
+            + '<div class="fs-5 fw-bold mt-1">' + fmt(c.total_con_envio) + '</div>'
+            + (c.costo_envio > 0 ? '<div class="small text-muted">Incluye envío: ' + fmt(c.costo_envio) + '</div>' : '')
+            + pagarHtml
+            + '</div></div></div>';
+        }).join('');
+
+        // Bind pagar buttons
+        Array.prototype.forEach.call(lista.querySelectorAll('.btn-pagar'), function (btn) {
+          btn.addEventListener('click', function () {
+            var id = parseInt(btn.getAttribute('data-id'), 10);
+            var fpInput = byId('fp-' + id);
+            var fechaPago = fpInput ? fpInput.value : new Date().toISOString().slice(0,10);
+            setBusy(btn, true, 'Guardando...');
+            apiFetch('api/cuentas.php', {
+              method: 'POST',
+              body: JSON.stringify({ compra_id: id, fecha_pago: fechaPago })
+            }).then(function (res) {
+              showMessage('success', res.message || 'Compra marcada como pagada.');
+              loadCuentas();
+            }).catch(function (err) {
+              showMessage('danger', err.message);
+              setBusy(btn, false);
+            });
+          });
+        });
+      })
+      .catch(function (err) { showMessage('danger', 'Cuentas: ' + err.message); });
+  }
+
   /* -------- Init -------- */
   function init() {
     window.addEventListener('error', function (event) {
@@ -852,7 +950,7 @@
         event.preventDefault();
         if (!token) { return; }
         var moduleName = element.getAttribute('data-module');
-        if (['productos', 'compras', 'usuarios', 'bancos', 'gastos'].indexOf(moduleName) !== -1 && currentRole() !== 'ADMINISTRADOR') {
+        if (['productos', 'compras', 'usuarios', 'bancos', 'gastos', 'cuentas'].indexOf(moduleName) !== -1 && currentRole() !== 'ADMINISTRADOR') {
           showMessage('warning', 'Tu rol VENDEDOR no tiene permiso para este módulo.');
           return;
         }
@@ -860,6 +958,7 @@
         if (moduleName === 'dashboard')  { loadDashboard(); }
         if (moduleName === 'inventario') { loadInventory().catch(function () {}); }
         if (moduleName === 'gastos')     { loadGastos(); }
+        if (moduleName === 'cuentas')    { loadCuentas(); }
       });
     });
 
