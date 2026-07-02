@@ -556,7 +556,7 @@
                 '</div>' +
                 '<div class="col-3">' +
                   '<div style="font-size:.68rem;color:#6c757d;text-transform:uppercase">Costo</div>' +
-                  '<div class="fw-bold">' + fmt(costo) + '</div>' +
+                  '<div class="fw-bold' + (costo === 0 ? ' text-danger' : '') + '">' + fmt(costo) + '</div>' +
                 '</div>' +
                 '<div class="col-3">' +
                   '<div style="font-size:.68rem;color:#6c757d;text-transform:uppercase">Precio</div>' +
@@ -566,6 +566,11 @@
                   '<div style="font-size:.68rem;color:#6c757d;text-transform:uppercase">Margen</div>' +
                   '<div class="fw-bold text-' + margenColor + '">' + (precio > 0 ? margen.toFixed(0) + '%' : '—') + '</div>' +
                 '</div>' +
+              '</div>' +
+              '<div class="text-end mt-2">' +
+                '<button class="btn btn-outline-secondary btn-sm btn-edit-product" ' +
+                  'data-product=\'' + JSON.stringify(p).replace(/'/g, '&#39;') + '\'>' +
+                  '✏ Editar</button>' +
               '</div>' +
 
               '</div></div></div>';
@@ -593,6 +598,66 @@
         return loadProducts();
       }).catch(function (error) { showMessage('danger', error.message); });
     });
+
+    // Abrir modal de edición al pulsar botón en tarjeta de inventario
+    document.addEventListener('click', function (event) {
+      var btn = event.target.closest('.btn-edit-product');
+      if (!btn) { return; }
+      var p;
+      try { p = JSON.parse(btn.getAttribute('data-product')); } catch (e) { return; }
+      var form = byId('editProductForm');
+      if (!form) { return; }
+      var setVal = function (name, val) {
+        var el = form.querySelector('[name="' + name + '"]');
+        if (el) { el.value = val !== null && val !== undefined ? val : ''; }
+      };
+      setVal('id',             p.id);
+      setVal('sku',            p.sku);
+      setVal('nombre',         p.nombre);
+      setVal('marcaVehiculo',  p.marca_vehiculo);
+      setVal('modeloVehiculo', p.modelo_vehiculo);
+      setVal('anioInicio',     p.anio_inicio);
+      setVal('anioFin',        p.anio_fin);
+      setVal('motor',          p.motor);
+      setVal('lado',           p.lado || 'NO_APLICA');
+      setVal('ubicacion',      p.ubicacion);
+      setVal('costoCompra',    Number(p.costo_compra  || 0).toFixed(2));
+      setVal('precioVenta',    Number(p.precio_venta  || 0).toFixed(2));
+      setVal('ivaPorcentaje',  Number(p.iva_porcentaje || 0).toFixed(2));
+      setVal('stockMinimo',    Number(p.stock_minimo  || 0));
+      setVal('stockMaximo',    Number(p.stock_maximo  || 0));
+      var msgEl = byId('editProductMsg');
+      if (msgEl) { msgEl.classList.add('d-none'); }
+      var modal = new bootstrap.Modal(byId('editProductModal'));
+      modal.show();
+    });
+
+    // Guardar cambios del modal de edición
+    var editForm = byId('editProductForm');
+    if (editForm) {
+      editForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var saveBtn = byId('editProductSaveBtn');
+        setBusy(saveBtn, true, 'Guardando...');
+        var msgEl = byId('editProductMsg');
+        apiFetch('api/productos.php', { method: 'PUT', body: JSON.stringify(formToObject(editForm)) })
+          .then(function (body) {
+            if (msgEl) {
+              msgEl.className = 'col-12 alert alert-success';
+              msgEl.textContent = body.message || 'Producto actualizado.';
+            }
+            setBusy(saveBtn, false);
+            loadProducts().then(function () { loadInventory().catch(function () {}); });
+          })
+          .catch(function (error) {
+            if (msgEl) {
+              msgEl.className = 'col-12 alert alert-danger';
+              msgEl.textContent = error.message;
+            }
+            setBusy(saveBtn, false);
+          });
+      });
+    }
 
     byId('addPurchaseItemBtn').addEventListener('click', function () {
       var product = comprasAC.getSelected();
