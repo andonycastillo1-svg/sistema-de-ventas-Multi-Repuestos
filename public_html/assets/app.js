@@ -521,24 +521,56 @@
       if (summaryTarget) {
         summaryTarget.textContent = 'Total productos: ' + (summary.total_productos || 0) + ' | Bajo mínimo: ' + (summary.bajo_minimo || 0) + ' | Sin stock: ' + (summary.sin_stock || 0);
       }
-      if (tbody) {
-        tbody.innerHTML = (body.productos || []).map(function (p) {
-          var alertBadge = p.alerta === 'SIN_STOCK' ? 'danger' : (p.alerta === 'BAJO_MINIMO' ? 'warning' : 'success');
-          var costo  = Number(p.costo_compra || 0);
-          var precio = Number(p.precio_venta || 0);
-          var margen = precio > 0 ? ((precio - costo) / precio * 100) : 0;
-          var margenColor = margen >= 30 ? 'success' : (margen >= 15 ? 'warning' : 'danger');
-          var margenTxt   = precio > 0 ? margen.toFixed(1) + '%' : '—';
-          return '<tr>' +
-            '<td><div class="fw-semibold">' + p.nombre + '</div><div class="text-muted small">' + p.sku + '</div></td>' +
-            '<td class="small">' + (p.ubicacion || '—') + '</td>' +
-            '<td class="text-end">' + p.stock_actual + '</td>' +
-            '<td class="text-end">' + fmt(costo) + '</td>' +
-            '<td class="text-end">' + fmt(precio) + '</td>' +
-            '<td class="text-end"><span class="badge text-bg-' + margenColor + '">' + margenTxt + '</span></td>' +
-            '<td><span class="badge text-bg-' + alertBadge + '">' + p.alerta + '</span></td>' +
-            '</tr>';
-        }).join('');
+      var container = byId('inventoryBody');
+      if (container) {
+        var productos = body.productos || [];
+        if (!productos.length) {
+          container.innerHTML = '<div class="col-12"><div class="alert alert-secondary">Sin productos.</div></div>';
+        } else {
+          container.innerHTML = productos.map(function (p) {
+            var alertColor = p.alerta === 'SIN_STOCK' ? 'danger' : (p.alerta === 'BAJO_MINIMO' ? 'warning' : 'success');
+            var alertLabel = p.alerta === 'SIN_STOCK' ? 'Sin stock' : (p.alerta === 'BAJO_MINIMO' ? 'Bajo mínimo' : 'OK');
+            var costo  = Number(p.costo_compra || 0);
+            var precio = Number(p.precio_venta || 0);
+            var ganancia = precio - costo;
+            var margen = precio > 0 ? ((ganancia / precio) * 100) : 0;
+            var margenColor = margen >= 30 ? 'success' : (margen >= 15 ? 'warning' : 'danger');
+            return '<div class="col-12 col-sm-6 col-xl-4">' +
+              '<div class="card shadow-sm h-100 border-start border-4 border-' + alertColor + '">' +
+              '<div class="card-body py-2 px-3">' +
+
+              // Nombre + badges
+              '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">' +
+                '<div>' +
+                  '<div class="fw-semibold lh-sm">' + p.nombre + '</div>' +
+                  '<div class="text-muted" style="font-size:.75rem">' + p.sku + (p.ubicacion ? ' · ' + p.ubicacion : '') + '</div>' +
+                '</div>' +
+                '<span class="badge text-bg-' + alertColor + ' flex-shrink-0">' + alertLabel + '</span>' +
+              '</div>' +
+
+              // Métricas
+              '<div class="row g-0 text-center" style="border-top:1px solid #f0f0f0;padding-top:.5rem">' +
+                '<div class="col-3">' +
+                  '<div style="font-size:.68rem;color:#6c757d;text-transform:uppercase">Stock</div>' +
+                  '<div class="fw-bold">' + Number(p.stock_actual) + '</div>' +
+                '</div>' +
+                '<div class="col-3">' +
+                  '<div style="font-size:.68rem;color:#6c757d;text-transform:uppercase">Costo</div>' +
+                  '<div class="fw-bold">' + fmt(costo) + '</div>' +
+                '</div>' +
+                '<div class="col-3">' +
+                  '<div style="font-size:.68rem;color:#6c757d;text-transform:uppercase">Precio</div>' +
+                  '<div class="fw-bold">' + fmt(precio) + '</div>' +
+                '</div>' +
+                '<div class="col-3">' +
+                  '<div style="font-size:.68rem;color:#6c757d;text-transform:uppercase">Margen</div>' +
+                  '<div class="fw-bold text-' + margenColor + '">' + (precio > 0 ? margen.toFixed(0) + '%' : '—') + '</div>' +
+                '</div>' +
+              '</div>' +
+
+              '</div></div></div>';
+          }).join('');
+        }
       }
     });
   }
