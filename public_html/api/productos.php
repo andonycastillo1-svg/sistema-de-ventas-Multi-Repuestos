@@ -5,7 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/config.php';
 
 $pdo = db();
-$method = $_SERVER['REQUEST_METHOD'];
+$method = $_GET['_method'] ?? $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     try {
