@@ -640,13 +640,13 @@
         var saveBtn = byId('editProductSaveBtn');
         setBusy(saveBtn, true, 'Guardando...');
         var msgEl = byId('editProductMsg');
-        apiFetch('api/productos.php', { method: 'PUT', body: JSON.stringify(formToObject(editForm)) })
+        apiFetch('api/productos.php?_method=PUT', { method: 'POST', body: JSON.stringify(formToObject(editForm)) })
           .then(function (body) {
-            if (msgEl) {
-              msgEl.className = 'col-12 alert alert-success';
-              msgEl.textContent = body.message || 'Producto actualizado.';
-            }
             setBusy(saveBtn, false);
+            // Cierra el modal y muestra mensaje global
+            var modalEl = byId('editProductModal');
+            if (modalEl) { bootstrap.Modal.getInstance(modalEl).hide(); }
+            showMessage('success', body.message || 'Producto actualizado.');
             loadProducts().then(function () { loadInventory().catch(function () {}); });
           })
           .catch(function (error) {
