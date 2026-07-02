@@ -86,20 +86,22 @@ try {
     $costoEnvio  = round((float) ($data['costoEnvio'] ?? 0), 2);
     $totalCompra = round($subtotalCompra + $impuestosCompra, 2);
     $stmt = $pdo->prepare(
-        'INSERT INTO compras (folio, factura_numero, proveedor_id, usuario_id, usuario_nombre, fecha, estado, subtotal, impuestos, total, costo_envio, recibido_at)
-         VALUES (:folio, :factura_numero, :proveedor_id, :usuario_id, :usuario_nombre, :fecha, "RECIBIDO", :subtotal, :impuestos, :total, :costo_envio, NOW())'
+        'INSERT INTO compras (folio, factura_numero, proveedor_id, usuario_id, usuario_nombre, fecha, estado, subtotal, impuestos, total, costo_envio, estado_pago, fecha_vencimiento, recibido_at)
+         VALUES (:folio, :factura_numero, :proveedor_id, :usuario_id, :usuario_nombre, :fecha, "RECIBIDO", :subtotal, :impuestos, :total, :costo_envio, "PENDIENTE", :fecha_vencimiento, NOW())'
     );
+    $diasCredito = (int) ($data['diasCredito'] ?? 40);
     $stmt->execute([
-        'folio'          => $folio,
-        'factura_numero' => $facturaNumero,
-        'fecha'          => $fechaCompra . ' 00:00:00',
-        'proveedor_id'   => $proveedorId,
-        'usuario_id'     => (int) $usuarioSesion['sub'],
-        'usuario_nombre' => $usuarioSesion['nombre'],
-        'subtotal'       => $subtotalCompra,
-        'impuestos'      => $impuestosCompra,
-        'total'          => $totalCompra,
-        'costo_envio'    => $costoEnvio,
+        'folio'              => $folio,
+        'factura_numero'     => $facturaNumero,
+        'fecha'              => $fechaCompra . ' 00:00:00',
+        'proveedor_id'       => $proveedorId,
+        'usuario_id'         => (int) $usuarioSesion['sub'],
+        'usuario_nombre'     => $usuarioSesion['nombre'],
+        'subtotal'           => $subtotalCompra,
+        'impuestos'          => $impuestosCompra,
+        'total'              => $totalCompra,
+        'costo_envio'        => $costoEnvio,
+        'fecha_vencimiento'  => date('Y-m-d', strtotime($fechaCompra . ' +' . $diasCredito . ' days')),
     ]);
     $compraId = (int) $pdo->lastInsertId();
 
