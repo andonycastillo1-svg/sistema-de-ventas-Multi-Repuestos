@@ -103,17 +103,23 @@
       diffEl.style.color = '';
     }
 
-    // Ganancia bruta del mes (ingresos - costo ventas - envíos - gastos operativos)
-    var ingresos      = Number((data.ganancia_mes && data.ganancia_mes.ingresos)      || 0);
-    var costo         = Number((data.ganancia_mes && data.ganancia_mes.costo_ventas)  || 0);
-    var totalEnvios   = Number((data.envios_mes   && data.envios_mes.total_envios)    || 0);
-    var totalGastos   = Number((data.gastos_mes   && data.gastos_mes.total_gastos)    || 0);
-    var ganancia      = ingresos - costo - totalEnvios - totalGastos;
-    var margen        = ingresos > 0 ? ((ganancia / ingresos) * 100).toFixed(1) : '0.0';
+    // Ganancia:
+    //   ingresos       = precio_venta × cantidad vendida (sin IVA)
+    //   costo_ventas   = costo_compra × cantidad vendida
+    //   ganancia_bruta = ingresos - costo_ventas
+    //   utilidad_neta  = ganancia_bruta - envíos de compras - gastos operativos
+    var ingresos       = Number((data.ganancia_mes && data.ganancia_mes.ingresos)       || 0);
+    var costoVentas    = Number((data.ganancia_mes && data.ganancia_mes.costo_ventas)   || 0);
+    var gananciaBruta  = Number((data.ganancia_mes && data.ganancia_mes.ganancia_bruta) || 0);
+    var totalEnvios    = Number((data.envios_mes   && data.envios_mes.total_envios)     || 0);
+    var totalGastos    = Number((data.gastos_mes   && data.gastos_mes.total_gastos)     || 0);
+    var utilidadNeta   = gananciaBruta - totalEnvios - totalGastos;
+    var margenBruto    = ingresos > 0 ? ((gananciaBruta / ingresos) * 100).toFixed(1) : '0.0';
+    var margenNeto     = ingresos > 0 ? ((utilidadNeta  / ingresos) * 100).toFixed(1) : '0.0';
     byId('kpiIngresos').textContent    = fmt(ingresos);
-    byId('kpiCosto').textContent       = fmt(costo + totalEnvios + totalGastos);
-    byId('kpiGanancia').textContent    = fmt(ganancia);
-    byId('kpiGananciaPct').textContent = 'Margen: ' + margen + '% · Envíos: ' + fmt(totalEnvios) + ' · Gastos: ' + fmt(totalGastos);
+    byId('kpiCosto').textContent       = fmt(costoVentas);
+    byId('kpiGanancia').textContent    = fmt(gananciaBruta);
+    byId('kpiGananciaPct').textContent = 'Margen bruto: ' + margenBruto + '% · Utilidad neta: ' + fmt(utilidadNeta) + ' (' + margenNeto + '%) · Envíos: ' + fmt(totalEnvios) + ' · Gastos op.: ' + fmt(totalGastos);
 
     var sinStock = Number(data.inventario.sin_stock || 0);
     var bajoMin = Number(data.inventario.bajo_minimo || 0);
