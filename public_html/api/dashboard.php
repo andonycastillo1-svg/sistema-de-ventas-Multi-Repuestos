@@ -97,11 +97,16 @@ $stmt = $pdo->query(
 );
 $gastos_mes = $stmt->fetch();
 
-// Ganancia bruta este mes (ingresos - costo de ventas)
+// Ganancia bruta este mes:
+//   ingresos     = precio_venta × cantidad (sin IVA, desde detalle_ventas.total_linea)
+//   costo_ventas = costo_compra × cantidad
+//   ganancia_bruta = ingresos - costo_ventas
 $stmt = $pdo->query(
     'SELECT
-        COALESCE(SUM(v.total), 0) AS ingresos,
-        COALESCE(SUM(dv.cantidad * p.costo_compra), 0) AS costo_ventas
+        COALESCE(SUM(dv.total_linea), 0)                  AS ingresos,
+        COALESCE(SUM(dv.cantidad * p.costo_compra), 0)    AS costo_ventas,
+        COALESCE(SUM(dv.total_linea), 0)
+          - COALESCE(SUM(dv.cantidad * p.costo_compra), 0) AS ganancia_bruta
        FROM detalle_ventas dv
        JOIN ventas v ON v.id = dv.venta_id
        JOIN productos p ON p.id = dv.producto_id
@@ -113,8 +118,10 @@ $ganancia_mes = $stmt->fetch();
 // Ganancia bruta últimos 7 días (por día)
 $stmt = $pdo->query(
     'SELECT DATE(v.fecha) AS dia,
-            COALESCE(SUM(v.total), 0) AS ingresos,
-            COALESCE(SUM(dv.cantidad * p.costo_compra), 0) AS costo_ventas
+            COALESCE(SUM(dv.total_linea), 0)                  AS ingresos,
+            COALESCE(SUM(dv.cantidad * p.costo_compra), 0)    AS costo_ventas,
+            COALESCE(SUM(dv.total_linea), 0)
+              - COALESCE(SUM(dv.cantidad * p.costo_compra), 0) AS ganancia_bruta
        FROM detalle_ventas dv
        JOIN ventas v ON v.id = dv.venta_id
        JOIN productos p ON p.id = dv.producto_id
