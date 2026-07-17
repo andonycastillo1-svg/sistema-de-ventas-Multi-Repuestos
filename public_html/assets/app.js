@@ -838,7 +838,7 @@
                 '<div class="text-muted" style="font-size:.75rem">' + m.cantidad + ' venta(s)</div>' +
                 '</div>';
             }).join('')
-          : '<span class="text-muted small">Sin datos</span>';
+          : '<span class="text-muted small">Sin datos</span>');
 
         // --- Detalle de ventas ---
         var detalles = body.detalle_ventas || [];
