@@ -793,10 +793,13 @@
       if (data.desde) { params.set('desde', data.desde); }
       if (data.hasta) { params.set('hasta', data.hasta); }
       apiFetch('api/reportes.php?' + params.toString()).then(function (body) {
+        var setText = function (id, val) { var el = byId(id); if (el) { el.textContent = val; } };
+        var setHtml = function (id, val) { var el = byId(id); if (el) { el.innerHTML  = val; } };
+
         // --- KPI Ventas ---
         var v = body.ventas || {};
-        byId('reportTotalVentas').textContent = fmt(Number(v.total_vendido || 0));
-        byId('reportSubVentas').textContent   = (v.cantidad_ventas || 0) + ' venta(s) · Descuentos: ' + fmt(Number(v.descuentos || 0));
+        setText('reportTotalVentas', fmt(Number(v.total_vendido || 0)));
+        setText('reportSubVentas',   (v.cantidad_ventas || 0) + ' venta(s) · Descuentos: ' + fmt(Number(v.descuentos || 0)));
 
         // --- KPI Costo de ventas ---
         var g = body.ganancia || {};
@@ -804,7 +807,7 @@
         var costoVentas   = Number(g.costo_ventas  || 0);
         var gananciaBruta = Number(g.ganancia_bruta || (ingresos - costoVentas));
         var margenBruto   = ingresos > 0 ? ((gananciaBruta / ingresos) * 100).toFixed(1) : '0.0';
-        byId('reportCosto').textContent = fmt(costoVentas);
+        setText('reportCosto', fmt(costoVentas));
 
         // --- KPI Gastos ---
         var gastos    = body.gastos  || {};
@@ -812,22 +815,22 @@
         var totalGastosOp = Number(gastos.total_gastos   || 0);
         var totalEnvios   = Number(compras.total_envios  || 0);
         var totalGastos   = totalGastosOp + totalEnvios;
-        byId('reportGastos').textContent    = fmt(totalGastos);
-        byId('reportSubGastos').textContent = 'Gastos op.: ' + fmt(totalGastosOp) + ' · Envíos: ' + fmt(totalEnvios);
+        setText('reportGastos',    fmt(totalGastos));
+        setText('reportSubGastos', 'Gastos op.: ' + fmt(totalGastosOp) + ' · Envíos: ' + fmt(totalEnvios));
 
         // --- KPI Ganancia bruta ---
-        byId('reportGanancia').textContent    = fmt(gananciaBruta);
-        byId('reportGananciaPct').textContent = 'Margen bruto: ' + margenBruto + '%';
+        setText('reportGanancia',    fmt(gananciaBruta));
+        setText('reportGananciaPct', 'Margen bruto: ' + margenBruto + '%');
 
         // --- KPI Utilidad estimada ---
-        var utilidad    = gananciaBruta - totalGastos;
-        var margenNeto  = ingresos > 0 ? ((utilidad / ingresos) * 100).toFixed(1) : '0.0';
-        byId('reportUtilidad').textContent    = fmt(utilidad);
-        byId('reportSubUtilidad').textContent = 'Margen neto: ' + margenNeto + '%';
+        var utilidad   = gananciaBruta - totalGastos;
+        var margenNeto = ingresos > 0 ? ((utilidad / ingresos) * 100).toFixed(1) : '0.0';
+        setText('reportUtilidad',    fmt(utilidad));
+        setText('reportSubUtilidad', 'Margen neto: ' + margenNeto + '%');
 
         // --- Métodos de pago ---
         var metodos = (body.por_metodo_pago || []);
-        byId('reportMetodos').innerHTML = metodos.length
+        setHtml('reportMetodos', metodos.length
           ? metodos.map(function (m) {
               return '<div class="card border-0 bg-light px-3 py-2 text-center" style="min-width:120px">' +
                 '<div class="small text-muted">' + m.metodo_pago + '</div>' +
@@ -858,7 +861,7 @@
             : '<tr><td colspan="6" class="text-center text-muted py-3">Sin ventas en este período</td></tr>';
         }
 
-        byId('reporteResultados').classList.remove('d-none');
+        var res = byId('reporteResultados'); if (res) { res.classList.remove('d-none'); }
       }).catch(function (error) { showMessage('danger', error.message); });
     });
 
