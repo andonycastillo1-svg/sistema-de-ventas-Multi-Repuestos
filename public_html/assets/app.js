@@ -793,24 +793,72 @@
       if (data.desde) { params.set('desde', data.desde); }
       if (data.hasta) { params.set('hasta', data.hasta); }
       apiFetch('api/reportes.php?' + params.toString()).then(function (body) {
+        // --- KPI Ventas ---
         var v = body.ventas || {};
-        var methods = (body.por_metodo_pago || []).map(function (m) {
-          return '<span class="badge text-bg-secondary me-1">' + m.metodo_pago + '</span> ' + fmt(m.total);
-        }).join(' &nbsp; ');
-        byId('salesReport').innerHTML =
-          '<div class="fw-bold mb-2">Ventas: ' + v.cantidad_ventas + ' &nbsp;|&nbsp; Total: ' + fmt(v.total_vendido) + ' &nbsp;|&nbsp; Descuentos: ' + fmt(v.descuentos) + '</div>' +
-          (methods ? '<div class="small mb-2">' + methods + '</div>' : '');
+        byId('reportTotalVentas').textContent = fmt(Number(v.total_vendido || 0));
+        byId('reportSubVentas').textContent   = (v.cantidad_ventas || 0) + ' venta(s) · Descuentos: ' + fmt(Number(v.descuentos || 0));
 
+        // --- KPI Costo de ventas ---
         var g = body.ganancia || {};
-        var ing  = Number(g.ingresos     || 0);
-        var cos  = Number(g.costo_ventas || 0);
-        var gan  = Number(g.ganancia_bruta || (ing - cos));
-        var pct  = ing > 0 ? ((gan / ing) * 100).toFixed(1) : '0.0';
-        byId('reportIngresos').textContent = fmt(ing);
-        byId('reportCosto').textContent    = fmt(cos);
-        byId('reportGanancia').textContent = fmt(gan);
-        byId('reportGananciaPct').textContent = 'Margen: ' + pct + '%';
-        byId('salesGanancia').classList.remove('d-none');
+        var ingresos      = Number(g.ingresos      || 0);
+        var costoVentas   = Number(g.costo_ventas  || 0);
+        var gananciaBruta = Number(g.ganancia_bruta || (ingresos - costoVentas));
+        var margenBruto   = ingresos > 0 ? ((gananciaBruta / ingresos) * 100).toFixed(1) : '0.0';
+        byId('reportCosto').textContent = fmt(costoVentas);
+
+        // --- KPI Gastos ---
+        var gastos    = body.gastos  || {};
+        var compras   = body.compras || {};
+        var totalGastosOp = Number(gastos.total_gastos   || 0);
+        var totalEnvios   = Number(compras.total_envios  || 0);
+        var totalGastos   = totalGastosOp + totalEnvios;
+        byId('reportGastos').textContent    = fmt(totalGastos);
+        byId('reportSubGastos').textContent = 'Gastos op.: ' + fmt(totalGastosOp) + ' · Envíos: ' + fmt(totalEnvios);
+
+        // --- KPI Ganancia bruta ---
+        byId('reportGanancia').textContent    = fmt(gananciaBruta);
+        byId('reportGananciaPct').textContent = 'Margen bruto: ' + margenBruto + '%';
+
+        // --- KPI Utilidad estimada ---
+        var utilidad    = gananciaBruta - totalGastos;
+        var margenNeto  = ingresos > 0 ? ((utilidad / ingresos) * 100).toFixed(1) : '0.0';
+        byId('reportUtilidad').textContent    = fmt(utilidad);
+        byId('reportSubUtilidad').textContent = 'Margen neto: ' + margenNeto + '%';
+
+        // --- Métodos de pago ---
+        var metodos = (body.por_metodo_pago || []);
+        byId('reportMetodos').innerHTML = metodos.length
+          ? metodos.map(function (m) {
+              return '<div class="card border-0 bg-light px-3 py-2 text-center" style="min-width:120px">' +
+                '<div class="small text-muted">' + m.metodo_pago + '</div>' +
+                '<div class="fw-bold">' + fmt(m.total) + '</div>' +
+                '<div class="text-muted" style="font-size:.75rem">' + m.cantidad + ' venta(s)</div>' +
+                '</div>';
+            }).join('')
+          : '<span class="text-muted small">Sin datos</span>';
+
+        // --- Detalle de ventas ---
+        var detalles = body.detalle_ventas || [];
+        var tbody = byId('reporteDetalleBody');
+        if (tbody) {
+          tbody.innerHTML = detalles.length
+            ? detalles.map(function (venta) {
+                var itemsHtml = (venta.items || []).map(function (it) {
+                  return '<div class="small">' + it.nombre + ' <span class="text-muted">×' + Number(it.cantidad) + '</span> <span class="text-muted">= ' + fmt(it.total_linea) + '</span></div>';
+                }).join('');
+                return '<tr>' +
+                  '<td class="small">' + (venta.fecha || '') + '</td>' +
+                  '<td class="small text-muted">' + (venta.folio || '') + '</td>' +
+                  '<td class="small">' + (venta.vendedor || '') + '</td>' +
+                  '<td><span class="badge text-bg-secondary">' + (venta.metodo_pago || '') + '</span></td>' +
+                  '<td>' + (itemsHtml || '<span class="text-muted small">—</span>') + '</td>' +
+                  '<td class="text-end fw-bold">' + fmt(Number(venta.total || 0)) + '</td>' +
+                  '</tr>';
+              }).join('')
+            : '<tr><td colspan="6" class="text-center text-muted py-3">Sin ventas en este período</td></tr>';
+        }
+
+        byId('reporteResultados').classList.remove('d-none');
       }).catch(function (error) { showMessage('danger', error.message); });
     });
 
