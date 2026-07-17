@@ -490,36 +490,116 @@
       <!-- ===== REPORTES ===== -->
       <section id="module-reportes" class="module-view d-none">
         <h1 class="h3 fw-bold mb-1">Reportes</h1>
-        <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> consulta el monto total vendido por fecha, incluyendo descuentos.</div>
-        <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Total vendido</h2><form id="reportForm" class="row g-2"><div class="col-12 col-md-6"><input class="form-control" name="desde" type="date"></div><div class="col-12 col-md-6"><input class="form-control" name="hasta" type="date"></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Ver reporte</button></div></form><div id="salesReport" class="mt-3"></div>
-              <div id="salesGanancia" class="row g-3 mt-1 d-none">
-                <div class="col-12 col-md-4">
-                  <div class="card kpi-card kpi-primary h-100">
-                    <div class="card-body py-2">
-                      <div class="kpi-label">Ingresos</div>
-                      <div class="kpi-value text-primary" id="reportIngresos">—</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-md-4">
-                  <div class="card kpi-card kpi-warning h-100">
-                    <div class="card-body py-2">
-                      <div class="kpi-label">Costo de ventas</div>
-                      <div class="kpi-value text-warning" id="reportCosto">—</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-md-4">
-                  <div class="card kpi-card kpi-success h-100">
-                    <div class="card-body py-2">
-                      <div class="kpi-label">Ganancia bruta</div>
-                      <div class="kpi-value text-success" id="reportGanancia">—</div>
-                      <div class="kpi-sub" id="reportGananciaPct"></div>
-                    </div>
-                  </div>
+        <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> selecciona un rango de fechas para ver ventas, costos, gastos y ganancia bruta del período.</div>
+
+        <!-- Filtro de fechas -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <form id="reportForm" class="row g-2 align-items-end">
+              <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold mb-1">Desde</label>
+                <input class="form-control" name="desde" type="date">
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold mb-1">Hasta</label>
+                <input class="form-control" name="hasta" type="date">
+              </div>
+              <div class="col-12 col-md-4">
+                <button class="btn btn-primary w-100" type="submit">Ver reporte</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- KPIs del período -->
+        <div id="reporteResultados" class="d-none">
+
+          <!-- Fila 1: Ventas | Compras | Gastos -->
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+              <div class="card shadow-sm kpi-card kpi-primary h-100">
+                <div class="card-body">
+                  <div class="kpi-label">Total ventas</div>
+                  <div class="kpi-value text-primary" id="reportTotalVentas">—</div>
+                  <div class="kpi-sub" id="reportSubVentas"></div>
                 </div>
               </div>
-            </div></div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="card shadow-sm kpi-card kpi-warning h-100">
+                <div class="card-body">
+                  <div class="kpi-label">Costo de ventas</div>
+                  <div class="kpi-value text-warning" id="reportCosto">—</div>
+                  <div class="kpi-sub">Costo compra de lo vendido</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="card shadow-sm kpi-card kpi-danger h-100">
+                <div class="card-body">
+                  <div class="kpi-label">Gastos del período</div>
+                  <div class="kpi-value text-danger" id="reportGastos">—</div>
+                  <div class="kpi-sub" id="reportSubGastos"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fila 2: Ganancia bruta -->
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+              <div class="card shadow-sm kpi-card kpi-success h-100" style="border-color:#198754">
+                <div class="card-body">
+                  <div class="kpi-label">Ganancia bruta</div>
+                  <div class="small text-muted mb-1">Total ventas − Costo de ventas</div>
+                  <div class="kpi-value text-success" id="reportGanancia">—</div>
+                  <div class="kpi-sub" id="reportGananciaPct"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="card shadow-sm h-100" style="border-left:4px solid #6f42c1">
+                <div class="card-body">
+                  <div class="kpi-label" style="color:#6f42c1">Utilidad estimada</div>
+                  <div class="small text-muted mb-1">Ganancia bruta − Gastos envío − Gastos operativos</div>
+                  <div class="kpi-value" id="reportUtilidad" style="color:#6f42c1">—</div>
+                  <div class="kpi-sub" id="reportSubUtilidad"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Por método de pago -->
+          <div class="card shadow-sm mb-4">
+            <div class="card-body">
+              <h2 class="h6 fw-semibold mb-2">Por método de pago</h2>
+              <div id="reportMetodos" class="d-flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+
+          <!-- Detalle de ventas -->
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="h6 fw-semibold mb-3">Detalle de ventas</h2>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Folio</th>
+                      <th>Vendedor</th>
+                      <th>Método</th>
+                      <th>Ítems</th>
+                      <th class="text-end">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reporteDetalleBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /reporteResultados -->
       </section>
 
     </main>
