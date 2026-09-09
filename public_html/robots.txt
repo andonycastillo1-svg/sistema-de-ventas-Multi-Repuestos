@@ -1,8 +1,1 @@
-User-agent: *
-Disallow: /api/
-Disallow: /assets/
-Disallow: /?token=
-Disallow: /?_method=
-Disallow: /index.html
 
-# Esta es una aplicación privada de gestión interna — no indexar
