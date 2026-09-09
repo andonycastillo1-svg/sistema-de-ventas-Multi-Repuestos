@@ -1,3 +1,19 @@
 RewriteEngine On
+
+# Pasar Authorization header a PHP
 RewriteCond %{HTTP:Authorization} ^(.*)
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+# Bloquear todos los bots/crawlers de la API
+RewriteCond %{HTTP_USER_AGENT} (bot|crawler|spider|slurp|google|bing|yahoo|baidu|yandex|facebook|twitter|linkedin|slack|whatsapp|telegram) [NC]
+RewriteRule .* - [F,L]
+
+# No hay index en este directorio
+Options -Indexes
+
+# Sin caché en respuestas de API
+<FilesMatch "\.php$">
+  Header set Cache-Control "no-store, no-cache, must-revalidate, private"
+  Header set Pragma "no-cache"
+  Header unset ETag
+</FilesMatch>
