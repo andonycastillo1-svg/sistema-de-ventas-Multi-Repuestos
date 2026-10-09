@@ -26,7 +26,7 @@ $botPatterns = [
 ];
 $uaLower = strtolower($userAgent);
 foreach ($botPatterns as $bot) {
-    if (str_contains($uaLower, $bot)) {
+    if (strpos($uaLower, $bot) !== false) {
         http_response_code(403);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['message' => 'Acceso denegado.']);
