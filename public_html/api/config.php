@@ -110,12 +110,8 @@ if ($requestMethod === 'OPTIONS') {
 }
 
 // ============================================================
-
-const DB_HOST = 'localhost';
-const DB_NAME = 'pmsguate_multi_repuestos';
-const DB_USER = 'pmsguate_appventas';
-const DB_PASS = 'CAMBIA_ESTA_PASSWORD';
-const JWT_SECRET = 'CAMBIA_ESTE_SECRETO_LARGO_Y_ALEATORIO';
+// Credenciales — cargadas desde archivo local (fuera del repositorio)
+require __DIR__ . '/db_config.php';
 
 function json_response(array $data, int $status = 200): void
 {

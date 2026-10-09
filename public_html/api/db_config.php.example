@@ -1,0 +1,9 @@
+<?php
+// Copia este archivo a db_config.php y rellena con tus credenciales reales.
+// Este archivo NO se incluye en el zip ni en git.
+
+const DB_HOST   = 'localhost';
+const DB_NAME   = 'pmsguate_multi_repuestos';
+const DB_USER   = 'pmsguate_appventas';
+const DB_PASS   = 'TU_PASSWORD_AQUI';
+const JWT_SECRET = 'TU_SECRETO_JWT_LARGO_Y_ALEATORIO';

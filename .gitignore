@@ -1,0 +1,11 @@
+# Credenciales — nunca en git
+public_html/api/db_config.php
+
+# Zip de deploy
+public_html.zip
+
+# IDE y OS
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
