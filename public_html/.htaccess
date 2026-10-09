@@ -1,5 +1,3 @@
 RewriteEngine On
-
-# Pasar Authorization header a PHP (necesario en cPanel)
 RewriteCond %{HTTP:Authorization} ^(.*)
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
