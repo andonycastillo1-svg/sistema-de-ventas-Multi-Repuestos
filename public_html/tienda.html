@@ -144,7 +144,10 @@
       grid.innerHTML = products.map(function (p) {
         var price = parseFloat(p.precio_venta || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         var desc  = p.descripcion ? '<p class="card-text small text-muted mb-0 mt-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(p.descripcion) + '</p>' : '';
-        var cat   = p.categoria ? '<span class="badge bg-secondary bg-opacity-25 text-secondary me-1 mb-1" style="font-size:.72rem">' + esc(p.categoria) + '</span>' : '';
+        var anios = p.anio_inicio ? (p.anio_inicio + (p.anio_fin && p.anio_fin !== p.anio_inicio ? '–' + p.anio_fin : '')) : '';
+        var veh   = [p.marca_vehiculo, p.modelo_vehiculo, anios].filter(Boolean).join(' ');
+        veh = veh ? '<p class="mb-1 fw-semibold" style="font-size:.75rem;color:#0f172a">🚗 ' + esc(veh) + '</p>' : '';
+        var cat   = veh + (p.categoria ? '<span class="badge bg-secondary bg-opacity-25 text-secondary me-1 mb-1" style="font-size:.72rem">' + esc(p.categoria) + '</span>' : '');
         return '<div class="col-6 col-sm-4 col-lg-3">' +
           '<div class="card product-card shadow-sm h-100">' +
             '<div class="product-icon">' + categoryIcon(p.categoria) + '</div>' +
@@ -167,9 +170,8 @@
       var filtered = allProducts.filter(function (p) {
         if (activeCategory !== 'all' && p.categoria !== activeCategory) { return false; }
         if (!q) { return true; }
-        return (p.nombre      || '').toLowerCase().indexOf(q) !== -1 ||
-               (p.sku         || '').toLowerCase().indexOf(q) !== -1 ||
-               (p.descripcion || '').toLowerCase().indexOf(q) !== -1;
+        return [p.nombre, p.sku, p.descripcion, p.marca_vehiculo, p.modelo_vehiculo, p.anio_inicio, p.anio_fin]
+          .join(' ').toLowerCase().indexOf(q) !== -1;
       });
       renderGrid(filtered);
     }
@@ -195,7 +197,7 @@
 
     // Load
     fetch('api/tienda.php')
-      .then(function (r) { return r.json(); })
+      .then(function (r) { if (!r.ok) { throw new Error('HTTP ' + r.status); } return r.json(); })
       .then(function (data) {
         document.getElementById('loadingState').classList.add('d-none');
         allProducts = data.productos || [];
