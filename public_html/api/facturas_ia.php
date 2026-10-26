@@ -88,12 +88,15 @@ $requestBody = json_encode([
     ],
 ]);
 
-// Modelos con su versión de API correcta — intenta en orden hasta que uno responda
+// Modelos en orden de preferencia — el código prueba cada uno hasta que alguno responda 200
 $models = [
-    ['version' => 'v1',    'model' => 'gemini-1.5-flash'],
-    ['version' => 'v1',    'model' => 'gemini-1.5-flash-latest'],
-    ['version' => 'v1beta','model' => 'gemini-2.5-flash'],
-    ['version' => 'v1beta','model' => 'gemini-3.8-flash'],
+    ['version' => 'v1beta', 'model' => 'gemini-2.5-flash'],
+    ['version' => 'v1beta', 'model' => 'gemini-2.5-flash-latest'],
+    ['version' => 'v1beta', 'model' => 'gemini-2.0-flash-lite'],
+    ['version' => 'v1beta', 'model' => 'gemini-3.8-flash'],
+    ['version' => 'v1',     'model' => 'gemini-1.5-flash'],
+    ['version' => 'v1',     'model' => 'gemini-1.5-flash-latest'],
+    ['version' => 'v1',     'model' => 'gemini-1.5-pro'],
 ];
 $response  = '';
 $httpCode  = 0;
@@ -125,11 +128,10 @@ foreach ($models as $entry) {
     $errData   = json_decode($response, true);
     $lastError = $errData['error']['message'] ?? 'HTTP ' . $httpCode;
 
-    // Solo reintentar con otro modelo si es sobrecarga o modelo no disponible
-    $retryable = ($httpCode === 503 || $httpCode === 429 ||
-                  strpos($lastError, 'no longer available') !== false ||
-                  strpos($lastError, 'high demand') !== false);
-    if (!$retryable) { break; }
+    // Reintentar con el siguiente modelo en cualquier error del modelo en sí
+    // Solo detener si es error de autenticación (clave incorrecta)
+    if ($httpCode === 400 && strpos($lastError, 'API_KEY') !== false) { break; }
+    if ($httpCode === 403) { break; } // clave sin permisos — no tiene sentido reintentar
 }
 
 if ($httpCode !== 200) {
