@@ -736,6 +736,16 @@
       // Unidades válidas en facturas centroamericanas
       var UNITS = /^(Unidad|Unidades|Und|UND|Pza|PZA|Pieza|Kit|Par|Juego|Litro|Litros|Lt|Galón|Galones|Metro|Metros|Mt|Servicio|Serv|Caja|Cajas|Rollo|Rollos|Hora|Horas|Global|Glob)$/i;
 
+      // Pasada prioritaria: DTE y razón social tienen precedencia sobre etiquetas genéricas
+      lines.forEach(function (line) {
+        var dteM = line.match(/DTE-\d{2}-[A-Z0-9]+-\d+/i);
+        if (!result.factura_numero && dteM) { result.factura_numero = dteM[0]; }
+        if (!result.proveedor && /(?:S\.\s?A\.|DE C\.\s?V\.|LTDA|S\.R\.L\.)/i.test(line) &&
+            !/(?:documento|tributario|electr[oó]nico|receptor|cliente)/i.test(line)) {
+          result.proveedor = line.trim();
+        }
+      });
+
       lines.forEach(function (line, idx) {
 
         /* Número de factura DTE: "DTE-XX-XXXXX-XXXXXXXXXX" */
@@ -775,7 +785,7 @@
         }
         /* Proveedor fallback: línea de texto puro en primeras 6 líneas */
         if (!result.proveedor && idx < 6 && line.length > 3 && !/^\d/.test(line)) {
-          if (!/(?:factura|fecha|cliente|direcci|tel[eé]|www\.|@|http|uuid|dte-)/i.test(line)) {
+          if (!/(?:factura|fecha|cliente|direcci|tel[eé]|www\.|@|http|uuid|dte-|documento|tributario|electr[oó]nico)/i.test(line)) {
             result.proveedor = line;
           }
         }
@@ -855,6 +865,13 @@
       return result;
     }
 
+    function showInvoiceResults(data) {
+      byId('facturaStep1').classList.add('d-none');
+      byId('facturaStep2').classList.remove('d-none');
+      byId('facturaCargarBtn').classList.remove('d-none');
+      renderIAResults(data);
+    }
+
     /* Corre OCR sobre un canvas y llena la tabla de resultados */
     function runOCROnCanvas(canvas) {
       if (typeof Tesseract === 'undefined') {
@@ -875,11 +892,7 @@
           }
         }
       }).then(function (result) {
-        var data = parseInvoiceText(result.data.text || '');
-        byId('facturaStep1').classList.add('d-none');
-        byId('facturaStep2').classList.remove('d-none');
-        byId('facturaCargarBtn').classList.remove('d-none');
-        renderIAResults(data);
+        showInvoiceResults(parseInvoiceText(result.data.text || ''));
       }).catch(function (err) {
         byId('facturaDropContent').classList.remove('d-none');
         byId('facturaProcessing').classList.add('d-none');
@@ -923,6 +936,28 @@
           .then(function (buf) { return pdfjsLib.getDocument({ data: buf }).promise; })
           .then(function (pdf) { return pdf.getPage(1); })
           .then(function (page) {
+            return page.getTextContent().then(function (tc) {
+              var rows = [];
+              tc.items.forEach(function (it) {
+                if (!it.str || !it.str.trim()) { return; }
+                var y = it.transform[5], x = it.transform[4];
+                var row = rows.find(function (r) { return Math.abs(r.y - y) < 3; });
+                if (!row) { row = { y: y, parts: [] }; rows.push(row); }
+                row.parts.push({ x: x, s: it.str.trim() });
+              });
+              rows.sort(function (a, b) { return b.y - a.y; });
+              var text = rows.map(function (r) {
+                return r.parts.sort(function (a, b) { return a.x - b.x; }).map(function (p) { return p.s; }).join(' ');
+              }).join('\n');
+              if (text.replace(/\s/g, '').length > 50) {
+                showInvoiceResults(parseInvoiceText(text));
+                return null;
+              }
+              return page;
+            });
+          })
+          .then(function (page) {
+            if (!page) { return null; }
             var vp = page.getViewport({ scale: 2.5 });
             var c  = document.createElement('canvas');
             c.width  = vp.width;
@@ -930,7 +965,7 @@
             return page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise
               .then(function () { return c; });
           })
-          .then(runOCROnCanvas)
+          .then(function (c) { if (c) { runOCROnCanvas(c); } })
           .catch(function (err) {
             byId('facturaDropContent').classList.remove('d-none');
             byId('facturaProcessing').classList.add('d-none');
