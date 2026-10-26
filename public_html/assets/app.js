@@ -467,15 +467,72 @@
     return '#' + product.id + ' | ' + product.sku + ' | ' + product.nombre + (vehicle ? ' | ' + vehicle : '');
   }
 
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   function renderProducts(productos) {
-    productsCache = productos || [];
+    if (productos) { productsCache = productos; }
     var target = byId('productsList');
     if (!target) { return; }
-    target.innerHTML = productsCache.length
-      ? '<strong>Últimos repuestos:</strong><br>' + productsCache.slice(0, 8).map(function (p) {
-          return productLabel(p) + ' | Stock: ' + p.stock_actual + ' | Precio: ' + fmt(p.precio_final || p.precio_venta || 0);
-        }).join('<br>')
-      : '<span class="text-muted">Sin productos registrados.</span>';
+    var searchEl = byId('productsSearch');
+    var q = searchEl ? searchEl.value.toLowerCase().trim() : '';
+    var list = productsCache.filter(function (p) {
+      if (!q) { return true; }
+      return [p.nombre, p.sku, p.descripcion, p.marca_vehiculo, p.modelo_vehiculo]
+        .join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+    if (!list.length) {
+      target.innerHTML = '<span class="text-muted">' + (q ? 'Sin coincidencias.' : 'Sin productos registrados.') + '</span>';
+      return;
+    }
+    target.innerHTML = '<table class="table table-sm table-hover align-middle mb-0"><thead><tr>' +
+      '<th>SKU</th><th>Producto</th><th class="text-end">Stock</th><th class="text-end">Costo</th>' +
+      '<th class="text-end">Precio final</th><th></th></tr></thead><tbody>' +
+      list.map(function (p) {
+        var vehiculo = [p.marca_vehiculo, p.modelo_vehiculo, p.anio_inicio && p.anio_fin ? p.anio_inicio + '-' + p.anio_fin : p.anio_inicio]
+          .filter(Boolean).join(' ');
+        return '<tr><td class="text-nowrap">' + escHtml(p.sku) + '</td>' +
+          '<td><div class="fw-semibold">' + escHtml(p.nombre) + '</div>' +
+          (p.descripcion ? '<div class="text-muted">' + escHtml(p.descripcion) + '</div>' : '') +
+          (vehiculo ? '<div class="text-muted fst-italic">' + escHtml(vehiculo) + '</div>' : '') + '</td>' +
+          '<td class="text-end">' + Number(p.stock_actual || 0) + '</td>' +
+          '<td class="text-end">' + fmt(p.costo_compra || 0) + '</td>' +
+          '<td class="text-end fw-bold">' + fmt(p.precio_final || p.precio_venta || 0) + '</td>' +
+          '<td class="text-end"><button type="button" class="btn btn-outline-primary btn-sm btn-edit-product" data-product-id="' + p.id + '">✏ Editar</button></td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  /* Sincroniza precio sin IVA <-> precio final y muestra el margen */
+  function bindPriceFields(form) {
+    var base  = form.querySelector('[name="precioVenta"]');
+    var iva   = form.querySelector('[name="ivaPorcentaje"]');
+    var final = form.querySelector('[name="precioFinal"]');
+    var costo = form.querySelector('[name="costoCompra"]');
+    var hint  = form.querySelector('.price-margin');
+    if (!base || !iva || !final) { return; }
+    function rate() { return 1 + (Number(iva.value) || 0) / 100; }
+    function showMargin() {
+      if (!hint) { return; }
+      var b = Number(base.value) || 0, c = Number(costo && costo.value) || 0;
+      if (b > 0 && c > 0) {
+        var m = ((b - c) / b) * 100;
+        hint.textContent = 'Ganancia ' + fmt(b - c) + ' (' + m.toFixed(0) + '%)';
+        hint.className = 'form-text price-margin ' + (m >= 30 ? 'text-success' : (m >= 15 ? 'text-warning' : 'text-danger'));
+      } else {
+        hint.textContent = 'Lo que paga el cliente.';
+        hint.className = 'form-text price-margin';
+      }
+    }
+    function fromBase()  { final.value = base.value === '' ? '' : (Number(base.value) * rate()).toFixed(2); showMargin(); }
+    function fromFinal() { base.value  = final.value === '' ? '' : (Number(final.value) / rate()).toFixed(2); showMargin(); }
+    base.addEventListener('input', fromBase);
+    iva.addEventListener('input', fromBase);
+    final.addEventListener('input', fromFinal);
+    if (costo) { costo.addEventListener('input', showMargin); }
+    form.addEventListener('reset', function () { setTimeout(showMargin, 0); });
+    form.syncPrices = fromBase;
+    showMargin();
   }
 
   function loadProducts() {
@@ -596,6 +653,12 @@
       if (costoInput && product.costo_compra) { costoInput.value = Number(product.costo_compra).toFixed(2); }
     });
 
+    bindPriceFields(byId('productForm'));
+    if (byId('editProductForm')) { bindPriceFields(byId('editProductForm')); }
+    if (byId('productsSearch')) {
+      byId('productsSearch').addEventListener('input', function () { renderProducts(); });
+    }
+
     byId('productForm').addEventListener('submit', function (event) {
       event.preventDefault();
       apiFetch('api/productos.php', { method: 'POST', body: JSON.stringify(formToObject(event.target)) }).then(function (body) {
@@ -609,8 +672,16 @@
     document.addEventListener('click', function (event) {
       var btn = event.target.closest('.btn-edit-product');
       if (!btn) { return; }
-      var p;
-      try { p = JSON.parse(btn.getAttribute('data-product')); } catch (e) { return; }
+      var p = null;
+      var pid = btn.getAttribute('data-product-id');
+      if (!pid) {
+        try { pid = JSON.parse(btn.getAttribute('data-product')).id; } catch (e) { return; }
+      }
+      // Usa la ficha completa (con descripción) de productos.php
+      p = productsCache.find(function (x) { return String(x.id) === String(pid); });
+      if (!p) {
+        try { p = JSON.parse(btn.getAttribute('data-product')); } catch (e) { return; }
+      }
       var form = byId('editProductForm');
       if (!form) { return; }
       var setVal = function (name, val) {
@@ -620,6 +691,7 @@
       setVal('id',             p.id);
       setVal('sku',            p.sku);
       setVal('nombre',         p.nombre);
+      setVal('descripcion',    p.descripcion);
       setVal('marcaVehiculo',  p.marca_vehiculo);
       setVal('modeloVehiculo', p.modelo_vehiculo);
       setVal('anioInicio',     p.anio_inicio);
@@ -632,6 +704,7 @@
       setVal('ivaPorcentaje',  Number(p.iva_porcentaje || 0).toFixed(2));
       setVal('stockMinimo',    Number(p.stock_minimo  || 0));
       setVal('stockMaximo',    Number(p.stock_maximo  || 0));
+      if (form.syncPrices) { form.syncPrices(); }
       var msgEl = byId('editProductMsg');
       if (msgEl) { msgEl.classList.add('d-none'); }
       var modal = new bootstrap.Modal(byId('editProductModal'));

@@ -315,26 +315,110 @@
       <section id="module-productos" class="module-view d-none">
         <h1 class="h3 fw-bold mb-1">Productos</h1>
         <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> ficha de repuesto para vehículo: registra aplicación, motor, lado, ubicación, costo y precio final con IVA.</div>
-        <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Crear producto / repuesto</h2><form id="productForm" class="row g-2">
-          <div class="col-12 col-md-4"><input class="form-control" name="sku" placeholder="SKU / Código" required></div>
-          <div class="col-12 col-md-8"><input class="form-control" name="nombre" placeholder="Nombre del repuesto" required></div>
-          <div class="col-12 col-md-4"><input class="form-control" name="marcaVehiculo" placeholder="Marca vehículo (Toyota, Mazda...)"></div>
-          <div class="col-12 col-md-4"><input class="form-control" name="modeloVehiculo" placeholder="Modelo vehículo"></div>
-          <div class="col-6 col-md-2"><input class="form-control" name="anioInicio" type="number" placeholder="Año inicio"></div>
-          <div class="col-6 col-md-2"><input class="form-control" name="anioFin" type="number" placeholder="Año fin"></div>
-          <div class="col-12 col-md-4"><input class="form-control" name="motor" placeholder="Motor / versión"></div>
-          <div class="col-12 col-md-4"><select class="form-control" name="lado"><option value="NO_APLICA">No aplica lado</option><option value="IZQUIERDO">Izquierdo</option><option value="DERECHO">Derecho</option><option value="DELANTERO">Delantero</option><option value="TRASERO">Trasero</option></select></div>
-          <div class="col-12 col-md-4"><input class="form-control" name="ubicacion" placeholder="Ubicación en bodega"></div>
-          <div class="col-6"><input class="form-control" name="categoria" placeholder="Categoría" value="Repuestos"></div>
-          <div class="col-6"><input class="form-control" name="unidad" placeholder="Unidad" value="PZA"></div>
-          <div class="col-6 col-md-4"><input class="form-control" name="costoCompra" type="number" step="0.01" placeholder="Costo compra"></div>
-          <div class="col-6 col-md-4"><input class="form-control" name="precioVenta" type="number" step="0.01" placeholder="Precio sin IVA"></div>
-          <div class="col-6 col-md-4"><input class="form-control" name="ivaPorcentaje" type="number" step="0.01" placeholder="IVA %" value="0"></div>
-          <div class="col-6 col-md-4"><input class="form-control" name="stockActual" type="number" step="0.001" placeholder="Stock" value="0"></div>
-          <div class="col-6 col-md-4"><input class="form-control" name="stockMinimo" type="number" step="0.001" placeholder="Stock mín." value="0"></div>
-          <div class="col-6 col-md-4"><input class="form-control" name="stockMaximo" type="number" step="0.001" placeholder="Stock máx." value="0"></div>
+        <div class="card shadow-sm mb-3"><div class="card-body"><h2 class="h5">Crear producto / repuesto</h2>
+        <form id="productForm" class="row g-3 product-form">
+          <div class="col-12"><h3 class="h6 text-primary border-bottom pb-1 mb-0">1. Identificación</h3></div>
+          <div class="col-12 col-md-4">
+            <label class="form-label fw-semibold">Código / SKU <span class="text-danger">*</span></label>
+            <input class="form-control" name="sku" placeholder="Ej: BMP-CIV-16-T" required>
+            <div class="form-text">Código único con el que buscas el repuesto.</div>
+          </div>
+          <div class="col-12 col-md-8">
+            <label class="form-label fw-semibold">Nombre del repuesto <span class="text-danger">*</span></label>
+            <input class="form-control" name="nombre" placeholder="Ej: Bumper completo trasero Honda Civic" required>
+            <div class="form-text">Nombre corto que aparece en ventas, facturas y en la tienda.</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea class="form-control" name="descripcion" rows="2" placeholder="Ej: Sedán Sport, incluye rejillas. Original / alterno, color negro mate…"></textarea>
+            <div class="form-text">Detalles adicionales que verá el cliente en la tienda.</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label fw-semibold">Categoría</label>
+            <input class="form-control" name="categoria" value="Repuestos" placeholder="Ej: Carrocería, Frenos">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label fw-semibold">Unidad de medida</label>
+            <input class="form-control" name="unidad" value="PZA" placeholder="PZA, JGO, LT">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold">Ubicación en bodega</label>
+            <input class="form-control" name="ubicacion" placeholder="Ej: Estante A-3, nivel 2">
+          </div>
+
+          <div class="col-12"><h3 class="h6 text-primary border-bottom pb-1 mb-0 mt-2">2. Aplicación al vehículo</h3></div>
+          <div class="col-6 col-md-3">
+            <label class="form-label fw-semibold">Marca del vehículo</label>
+            <input class="form-control" name="marcaVehiculo" placeholder="Ej: Honda">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label fw-semibold">Modelo</label>
+            <input class="form-control" name="modeloVehiculo" placeholder="Ej: Civic">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label fw-semibold">Año desde</label>
+            <input class="form-control" name="anioInicio" type="number" placeholder="2016">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label fw-semibold">Año hasta</label>
+            <input class="form-control" name="anioFin" type="number" placeholder="2021">
+          </div>
+          <div class="col-12 col-md-2">
+            <label class="form-label fw-semibold">Lado / posición</label>
+            <select class="form-select" name="lado"><option value="NO_APLICA">No aplica</option><option value="IZQUIERDO">Izquierdo</option><option value="DERECHO">Derecho</option><option value="DELANTERO">Delantero</option><option value="TRASERO">Trasero</option></select>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold">Motor / versión</label>
+            <input class="form-control" name="motor" placeholder="Ej: 1.5 Turbo, Sedán Sport">
+          </div>
+
+          <div class="col-12"><h3 class="h6 text-primary border-bottom pb-1 mb-0 mt-2">3. Precios</h3></div>
+          <div class="col-6 col-md-3">
+            <label class="form-label fw-semibold">Costo de compra</label>
+            <input class="form-control" name="costoCompra" type="number" step="0.01" min="0" placeholder="0.00">
+            <div class="form-text">Lo que te cuesta a ti.</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label fw-semibold">IVA %</label>
+            <input class="form-control" name="ivaPorcentaje" type="number" step="0.01" min="0" value="0">
+            <div class="form-text">0 si el precio ya incluye IVA.</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label fw-semibold">Precio sin IVA</label>
+            <input class="form-control" name="precioVenta" type="number" step="0.01" min="0" placeholder="0.00">
+            <div class="form-text">Se calcula solo desde el precio final.</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label fw-semibold text-success">Precio final al cliente</label>
+            <input class="form-control border-success fw-bold" name="precioFinal" type="number" step="0.01" min="0" placeholder="0.00">
+            <div class="form-text price-margin"></div>
+          </div>
+
+          <div class="col-12"><h3 class="h6 text-primary border-bottom pb-1 mb-0 mt-2">4. Existencias</h3></div>
+          <div class="col-4">
+            <label class="form-label fw-semibold">Stock inicial</label>
+            <input class="form-control" name="stockActual" type="number" step="0.001" min="0" value="0">
+            <div class="form-text">Unidades que tienes hoy.</div>
+          </div>
+          <div class="col-4">
+            <label class="form-label fw-semibold">Stock mínimo</label>
+            <input class="form-control" name="stockMinimo" type="number" step="0.001" min="0" value="0">
+            <div class="form-text">Avisa cuando baje de aquí.</div>
+          </div>
+          <div class="col-4">
+            <label class="form-label fw-semibold">Stock máximo</label>
+            <input class="form-control" name="stockMaximo" type="number" step="0.001" min="0" value="0">
+          </div>
           <div class="col-12"><button class="btn btn-primary w-100" type="submit">Guardar producto</button></div>
-        </form><div id="productsList" class="small mt-3"></div></div></div>
+        </form></div></div>
+
+        <div class="card shadow-sm"><div class="card-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h2 class="h5 mb-0">Productos registrados</h2>
+            <input id="productsSearch" type="search" class="form-control" style="max-width:320px" placeholder="Buscar por nombre, SKU o vehículo…">
+          </div>
+          <div id="productsList" class="table-responsive small"></div>
+        </div></div>
       </section>
 
       <!-- ===== COMPRAS ===== -->
@@ -622,22 +706,73 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
-          <form id="editProductForm" class="row g-2">
+          <form id="editProductForm" class="row g-3 product-form">
             <input type="hidden" name="id">
-            <div class="col-12 col-md-4"><input class="form-control" name="sku" placeholder="SKU / Código" required></div>
-            <div class="col-12 col-md-8"><input class="form-control" name="nombre" placeholder="Nombre del repuesto" required></div>
-            <div class="col-12 col-md-4"><input class="form-control" name="marcaVehiculo" placeholder="Marca vehículo"></div>
-            <div class="col-12 col-md-4"><input class="form-control" name="modeloVehiculo" placeholder="Modelo vehículo"></div>
-            <div class="col-6 col-md-2"><input class="form-control" name="anioInicio" type="number" placeholder="Año inicio"></div>
-            <div class="col-6 col-md-2"><input class="form-control" name="anioFin" type="number" placeholder="Año fin"></div>
-            <div class="col-12 col-md-4"><input class="form-control" name="motor" placeholder="Motor / versión"></div>
-            <div class="col-12 col-md-4"><select class="form-control" name="lado"><option value="NO_APLICA">No aplica lado</option><option value="IZQUIERDO">Izquierdo</option><option value="DERECHO">Derecho</option><option value="DELANTERO">Delantero</option><option value="TRASERO">Trasero</option></select></div>
-            <div class="col-12 col-md-4"><input class="form-control" name="ubicacion" placeholder="Ubicación en bodega"></div>
-            <div class="col-6 col-md-4"><input class="form-control" name="costoCompra" type="number" step="0.01" placeholder="Costo compra" required></div>
-            <div class="col-6 col-md-4"><input class="form-control" name="precioVenta" type="number" step="0.01" placeholder="Precio sin IVA" required></div>
-            <div class="col-6 col-md-4"><input class="form-control" name="ivaPorcentaje" type="number" step="0.01" placeholder="IVA %" value="0"></div>
-            <div class="col-6 col-md-4"><input class="form-control" name="stockMinimo" type="number" step="0.001" placeholder="Stock mín."></div>
-            <div class="col-6 col-md-4"><input class="form-control" name="stockMaximo" type="number" step="0.001" placeholder="Stock máx."></div>
+            <div class="col-12 col-md-4">
+              <label class="form-label fw-semibold">Código / SKU <span class="text-danger">*</span></label>
+              <input class="form-control" name="sku" required>
+            </div>
+            <div class="col-12 col-md-8">
+              <label class="form-label fw-semibold">Nombre del repuesto <span class="text-danger">*</span></label>
+              <input class="form-control" name="nombre" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Descripción</label>
+              <textarea class="form-control" name="descripcion" rows="3" placeholder="Detalles que verá el cliente en la tienda"></textarea>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold">Marca del vehículo</label>
+              <input class="form-control" name="marcaVehiculo">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold">Modelo</label>
+              <input class="form-control" name="modeloVehiculo">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold">Año desde</label>
+              <input class="form-control" name="anioInicio" type="number">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold">Año hasta</label>
+              <input class="form-control" name="anioFin" type="number">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label fw-semibold">Motor / versión</label>
+              <input class="form-control" name="motor">
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-semibold">Lado / posición</label>
+              <select class="form-select" name="lado"><option value="NO_APLICA">No aplica</option><option value="IZQUIERDO">Izquierdo</option><option value="DERECHO">Derecho</option><option value="DELANTERO">Delantero</option><option value="TRASERO">Trasero</option></select>
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-semibold">Ubicación en bodega</label>
+              <input class="form-control" name="ubicacion">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold">Costo de compra</label>
+              <input class="form-control" name="costoCompra" type="number" step="0.01" min="0" required>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold">IVA %</label>
+              <input class="form-control" name="ivaPorcentaje" type="number" step="0.01" min="0" value="0">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold">Precio sin IVA</label>
+              <input class="form-control" name="precioVenta" type="number" step="0.01" min="0" required>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-semibold text-success">Precio final al cliente</label>
+              <input class="form-control border-success fw-bold" name="precioFinal" type="number" step="0.01" min="0">
+              <div class="form-text price-margin"></div>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Stock mínimo</label>
+              <input class="form-control" name="stockMinimo" type="number" step="0.001" min="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Stock máximo</label>
+              <input class="form-control" name="stockMaximo" type="number" step="0.001" min="0">
+            </div>
             <div id="editProductMsg" class="col-12 d-none"></div>
           </form>
         </div>
@@ -738,6 +873,6 @@
   <!-- Tesseract.js: OCR local en el navegador, sin API externa -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/app.js?v=20"></script>
+  <script src="assets/app.js?v=21"></script>
 </body>
 </html>
