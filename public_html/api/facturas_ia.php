@@ -88,15 +88,20 @@ $requestBody = json_encode([
     ],
 ]);
 
-// Intentar con modelos en orden — si uno está saturado o no disponible, pasa al siguiente
-$models = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-3.8-flash'];
+// Modelos con su versión de API correcta — intenta en orden hasta que uno responda
+$models = [
+    ['version' => 'v1',    'model' => 'gemini-1.5-flash'],
+    ['version' => 'v1',    'model' => 'gemini-1.5-flash-latest'],
+    ['version' => 'v1beta','model' => 'gemini-2.5-flash'],
+    ['version' => 'v1beta','model' => 'gemini-3.8-flash'],
+];
 $response  = '';
 $httpCode  = 0;
 $lastError = '';
 
-foreach ($models as $model) {
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
-         . $model . ':generateContent?key=' . rawurlencode(GEMINI_API_KEY);
+foreach ($models as $entry) {
+    $url = 'https://generativelanguage.googleapis.com/' . $entry['version'] . '/models/'
+         . $entry['model'] . ':generateContent?key=' . rawurlencode(GEMINI_API_KEY);
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
