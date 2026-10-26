@@ -731,71 +731,124 @@
 
       var result = { proveedor: '', nit: '', factura_numero: '', fecha: '', items: [] };
 
-      /* -- Metadatos -- */
+      /* ---- METADATOS ---- */
+
+      // Unidades válidas en facturas centroamericanas
+      var UNITS = /^(Unidad|Unidades|Und|UND|Pza|PZA|Pieza|Kit|Par|Juego|Litro|Litros|Lt|Galón|Galones|Metro|Metros|Mt|Servicio|Serv|Caja|Cajas|Rollo|Rollos|Hora|Horas|Global|Glob)$/i;
+
       lines.forEach(function (line, idx) {
-        // Fecha
-        if (!result.fecha) {
-          var iso = line.match(/\b(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})\b/);
-          if (iso) { result.fecha = iso[1] + '-' + iso[2] + '-' + iso[3]; }
-          var dmy = line.match(/\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b/);
-          if (!result.fecha && dmy) {
-            result.fecha = dmy[3] + '-' + dmy[2].padStart(2,'0') + '-' + dmy[1].padStart(2,'0');
-          }
+
+        /* Número de factura DTE: "DTE-XX-XXXXX-XXXXXXXXXX" */
+        if (!result.factura_numero && /^DTE-\d{2}-[A-Z0-9]+-\d+$/i.test(line)) {
+          result.factura_numero = line;
+          return;
         }
-        // NIT / RUT
-        if (!result.nit) {
-          var nitM = line.match(/(?:nit|rut|ruc|cif)[:\s.]+([0-9\-]+K?)/i);
-          if (nitM) { result.nit = nitM[1]; }
-        }
-        // Número de factura
+        /* Número de factura genérico: precedido por palabras clave */
         if (!result.factura_numero) {
-          var invM = line.match(/(?:factura|serie|no\.?|número|folio|dte|ticket)[:\s#]+([A-Z0-9\-]+)/i);
+          var invM = line.match(/(?:factura|serie|no\.?|n[uú]mero|folio|dte|ticket|correlativo|ccf)[:\s#]+([A-Z0-9\-\/]+)/i);
           if (invM) { result.factura_numero = invM[1]; }
         }
-        // Proveedor: una de las 3 primeras líneas que parezca nombre de empresa
-        if (!result.proveedor && idx < 5 && line.length > 3 && !/^\d/.test(line)) {
-          if (!/(?:factura|fecha|cliente|direcci|tel|www\.|email|http)/i.test(line)) {
+
+        /* Fecha DD/MM/YYYY o YYYY-MM-DD (la de DTE va pegada al hash) */
+        if (!result.fecha) {
+          var dmy = line.match(/\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b/);
+          if (dmy) { result.fecha = dmy[3] + '-' + dmy[2].padStart(2,'0') + '-' + dmy[1].padStart(2,'0'); }
+          var iso = line.match(/\b(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})\b/);
+          if (!result.fecha && iso) { result.fecha = iso[1] + '-' + iso[2] + '-' + iso[3]; }
+        }
+
+        /* NIT explícito */
+        if (!result.nit) {
+          var nitM = line.match(/(?:nit|rut|ruc|cif|registro)[:\s.]+([0-9\-]+K?)/i);
+          if (nitM) { result.nit = nitM[1]; }
+        }
+        /* NIT implícito: línea que es solo dígitos (8-14 chars), en primeros 8 lines */
+        if (!result.nit && idx < 8 && /^\d{8,14}$/.test(line)) {
+          result.nit = line;
+        }
+
+        /* Proveedor: línea con S.A., DE C.V., LTDA, S.R.L., S.A.S., INC., CORP., S.A. DE C.V. */
+        if (!result.proveedor) {
+          if (/(?:S\.A\.|DE C\.V\.|LTDA|S\.R\.L\.|S\.A\.S\.|INC\.|CORP\.|COMERCIAL|DISTRIBUIDORA|REPUESTOS|AUTOPARTS|PARTS)/i.test(line)) {
+            result.proveedor = line.trim();
+          }
+        }
+        /* Proveedor fallback: línea de texto puro en primeras 6 líneas */
+        if (!result.proveedor && idx < 6 && line.length > 3 && !/^\d/.test(line)) {
+          if (!/(?:factura|fecha|cliente|direcci|tel[eé]|www\.|@|http|uuid|dte-)/i.test(line)) {
             result.proveedor = line;
           }
         }
       });
 
-      /* -- Ítems: busca líneas con descripción + números al final -- */
-      var skipPattern = /(?:^sub.?total|^total|^iva|^impuesto|^descuento|^factura|^fecha|^nit|^cliente|^proveedor|^direcci|^tel|^serie|^folio)/i;
-      lines.forEach(function (line) {
+      /* ---- ÍTEMS ----
+         Formato DTE SV: la descripción va en la línea ANTERIOR al renglón de precio y
+         puede tener una segunda parte en la línea POSTERIOR.
+           [N-1] BUMPER COMPLETO HONDA CIVIC 16-18/19-21
+           [N]   1 1 Unidad $153.23 $0.00 $0.00 $0.00 $153.23
+           [N+1] TRASERO SEDAN SPORT
+
+         Formato genérico: # qty Unidad descripción... $precio
+      */
+      var skipPattern = /(?:^sub.?total|^total\b|^iva\b|^impuesto|^descuento|^p[aá]gina|^reconozco|^fecha|^serie|^folio|^correo|^email)/i;
+      var metaPattern = /(?:DTE-|\b\d{8,14}\b|@|www\.|tel[eé]|direcci|S\.A\.|LTDA|\.com)/i;
+
+      // Renglón DTE sin descripción: "# qty Unidad $precio $0 $0 $0 $total"
+      var dteNoDescRe = /^(\d+)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+\$([\d,]+\.\d{2})(?:\s+\$[\d,]+\.\d{2})+/;
+      // Renglón con descripción inline: "# qty Unidad desc... $precio"
+      var dteInlineRe = /^(\d+)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+(.+?)\s+\$([\d,]+\.\d{2})/;
+
+      lines.forEach(function (line, idx) {
         if (line.length < 4 || skipPattern.test(line)) { return; }
 
-        // Extrae todos los números de la línea
-        var numRe = /\b\d+(?:[.,]\d{1,2})?\b/g;
-        var nums = [], m;
-        while ((m = numRe.exec(line)) !== null) {
-          nums.push({ val: parseFloat(m[0].replace(',', '.')), pos: m.index });
+        /* Caso 1 — DTE: renglón de precio sin descripción inline */
+        var m1 = line.match(dteNoDescRe);
+        if (m1 && UNITS.test(m1[3])) {
+          var qty   = parseFloat(m1[2].replace(',', '.'));
+          var prices1 = line.match(/\$([\d,]+\.\d{2})/g) || [];
+          var price = prices1.length ? parseFloat(prices1[0].replace(/[$,]/g, '')) : 0;
+
+          // Descripción: línea anterior + línea siguiente (filtrando metadatos)
+          var prev = idx > 0              ? lines[idx - 1] : '';
+          var next = idx < lines.length-1 ? lines[idx + 1] : '';
+          if (skipPattern.test(prev) || metaPattern.test(prev)) { prev = ''; }
+          if (skipPattern.test(next) || metaPattern.test(next) || dteNoDescRe.test(next) || dteInlineRe.test(next)) { next = ''; }
+          var desc = (prev + ' ' + next).replace(/\s{2,}/g, ' ').trim();
+          if (!desc) { desc = 'Artículo'; }
+
+          if (price > 0) {
+            result.items.push({ descripcion: desc, cantidad: qty, precio_unitario: price });
+          }
+          return;
         }
-        if (nums.length < 2) { return; }
 
-        // Descripción: texto antes del primer número (quitando solo dígitos sueltos)
-        var firstNumPos = nums[0].pos;
-        var desc = line.substring(0, firstNumPos).replace(/[\d]/g, '').trim();
-        if (!desc || desc.length < 3) {
-          // Intenta con texto antes del penúltimo número
-          desc = line.replace(/[\d.,\s]+$/, '').trim();
+        /* Caso 2 — descripción inline */
+        var m2 = line.match(dteInlineRe);
+        if (m2 && UNITS.test(m2[3])) {
+          var qty2   = parseFloat(m2[2].replace(',', '.'));
+          var desc2  = m2[4].replace(/\s{2,}/g, ' ').trim();
+          var price2 = parseFloat(m2[5].replace(',', ''));
+          if (desc2.length >= 3 && price2 > 0) {
+            result.items.push({ descripcion: desc2, cantidad: qty2, precio_unitario: price2 });
+          }
+          return;
         }
 
-        // Cantidad: último-1 número; precio: último número
-        var qty   = nums[nums.length - 2].val;
-        var price = nums[nums.length - 1].val;
-
-        // Si qty parece precio (>qty normal) y solo hay 2 nums, asume qty=1
-        if (nums.length === 2 && qty > 500) { qty = 1; }
-        // Evitar filas que parezcan totales (número grande seguido de número grande)
-        if (qty > 1000 && price > 1000) { return; }
-
-        if (desc && desc.length >= 3 && price > 0) {
-          result.items.push({
-            descripcion:     desc.replace(/\s{2,}/g, ' ').replace(/[|:]/g, '').trim(),
-            cantidad:        qty,
-            precio_unitario: price
-          });
+        /* Caso 3 — genérico: línea con texto y al menos un precio $xx.xx */
+        var genericPrices = [];
+        var gm;
+        var gRe = /\$([\d,]+\.\d{2})/g;
+        while ((gm = gRe.exec(line)) !== null) {
+          genericPrices.push({ val: parseFloat(gm[1].replace(',', '')), pos: gm.index });
+        }
+        if (genericPrices.length < 1) { return; }
+        var desc3 = line.substring(0, genericPrices[0].pos).replace(/^\d+\s*/, '').replace(/\s{2,}/g, ' ').trim();
+        if (!desc3 || desc3.length < 3 || /^[\d\s$.,]+$/.test(desc3)) { return; }
+        var price3 = genericPrices[0].val;
+        var qtyM3  = line.match(/^\d+\s+(\d+(?:[.,]\d+)?)\s+/);
+        var qty3   = qtyM3 ? parseFloat(qtyM3[1]) : 1;
+        if (price3 > 0 && qty3 < 1000) {
+          result.items.push({ descripcion: desc3, cantidad: qty3, precio_unitario: price3 });
         }
       });
 
