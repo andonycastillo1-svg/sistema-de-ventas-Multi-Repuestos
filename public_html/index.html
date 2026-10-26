@@ -147,6 +147,7 @@
           <li><a href="#" class="sidebar-link" data-module="pos"><span class="icon">🧾</span>Punto de venta</a></li>
           <li><a href="#" class="sidebar-link" data-module="inventario"><span class="icon">🚨</span>Inventario</a></li>
           <li><a href="#" class="sidebar-link" data-module="reportes"><span class="icon">📊</span>Reportes</a></li>
+          <li><a href="tienda.html" target="_blank" class="sidebar-link"><span class="icon">🛍️</span>Ver Tienda</a></li>
         </ul>
 
         <div class="sidebar-brand sidebar-admin-item">Administración</div>
@@ -340,6 +341,12 @@
       <section id="module-compras" class="module-view d-none">
         <h1 class="h3 fw-bold mb-1">Compras</h1>
         <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> registra la factura de compra completa: fecha, proveedor y todos los repuestos incluidos. Al guardar, se carga inventario y Kardex.</div>
+        <div class="mb-3">
+          <button id="openFacturaIABtn" class="btn btn-outline-primary" type="button">
+            🤖 Importar desde Factura (IA)
+          </button>
+          <span class="text-muted small ms-2">Sube una foto o PDF de tu factura y la IA extrae los productos automáticamente.</span>
+        </div>
         <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Factura de compra</h2><form id="purchaseForm" class="row g-2">
           <div class="col-12 col-md-3"><input class="form-control" name="fechaCompra" type="date" required></div>
           <div class="col-12 col-md-3"><input class="form-control" name="facturaNumero" placeholder="No. factura"></div>
@@ -643,7 +650,84 @@
   </div>
 
   <noscript><div class="container"><div class="alert alert-danger mt-4">Tu navegador tiene JavaScript desactivado. Actívalo para usar la app.</div></div></noscript>
+  <!-- Modal: Importar Factura con IA -->
+  <div class="modal fade" id="facturaIAModal" tabindex="-1" aria-labelledby="facturaIAModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="facturaIAModalLabel">🤖 Importar Factura con IA</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Paso 1: subir archivo -->
+          <div id="facturaStep1">
+            <p class="text-muted mb-3">Sube una foto o PDF de tu factura de compra. La IA extrae automáticamente los productos, cantidades y precios para pre-cargar el formulario.</p>
+            <div id="facturaDropZone" class="border border-2 rounded-3 p-5 text-center" style="cursor:pointer;border-style:dashed!important;border-color:#ced4da!important;transition:border-color .15s">
+              <div id="facturaDropContent">
+                <div style="font-size:2.5rem">📄</div>
+                <p class="mb-2 fw-semibold">Arrastra tu factura aquí o</p>
+                <label class="btn btn-outline-primary" for="facturaFileInput">Seleccionar archivo</label>
+                <input type="file" id="facturaFileInput" class="d-none" accept=".jpg,.jpeg,.png,.webp,.pdf">
+                <p class="text-muted small mt-2 mb-0">Formatos: JPG, PNG, WebP, PDF — Máx. 10 MB</p>
+              </div>
+              <div id="facturaProcessing" class="d-none">
+                <div class="spinner-border text-primary mb-2" style="width:2.5rem;height:2.5rem"></div>
+                <p class="mb-0 fw-semibold">Analizando factura con IA…</p>
+                <p class="text-muted small">Esto puede tomar unos segundos</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Paso 2: resultados extraídos -->
+          <div id="facturaStep2" class="d-none">
+            <p class="small text-success fw-semibold mb-3">✅ Factura analizada. Verifica los datos y selecciona el producto del sistema para cada ítem.</p>
+
+            <div class="row g-2 mb-3">
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1">Fecha</label>
+                <input id="ia_fecha" class="form-control" type="date">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1">No. Factura</label>
+                <input id="ia_facturaNumero" class="form-control" placeholder="Número de factura">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1">NIT Proveedor</label>
+                <input id="ia_proveedorNit" class="form-control" placeholder="NIT / RUT">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1">Proveedor</label>
+                <input id="ia_proveedorNombre" class="form-control" placeholder="Nombre proveedor">
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="min-width:160px">Descripción en factura</th>
+                    <th style="min-width:200px">Producto en sistema <span class="text-muted fw-normal small">(selecciona o deja vacío para omitir)</span></th>
+                    <th>Cantidad</th>
+                    <th>Costo unit.</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="iaItemsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button id="facturaCargarBtn" class="btn btn-primary d-none" type="button">Cargar al formulario de compra →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/app.js?v=15"></script>
+  <script src="assets/app.js?v=16"></script>
 </body>
 </html>

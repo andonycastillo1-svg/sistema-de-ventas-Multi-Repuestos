@@ -7,3 +7,8 @@ const DB_NAME   = 'pmsguate_multi_repuestos';
 const DB_USER   = 'pmsguate_appventas';
 const DB_PASS   = 'TU_PASSWORD_AQUI';
 const JWT_SECRET = 'TU_SECRETO_JWT_LARGO_Y_ALEATORIO';
+
+// Opcional: clave API de Claude (Anthropic) para importación de facturas con IA.
+// Obtén tu clave en https://console.anthropic.com/
+// Deja vacío o con 'TU_' para deshabilitar la función.
+const CLAUDE_API_KEY = 'TU_API_KEY_DE_CLAUDE';

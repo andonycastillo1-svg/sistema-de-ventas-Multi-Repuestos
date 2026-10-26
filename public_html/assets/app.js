@@ -710,6 +710,152 @@
       }).catch(function (error) { showMessage('danger', error.message); });
     });
 
+    /* -------- Importar Factura con IA -------- */
+    byId('openFacturaIABtn').addEventListener('click', function () {
+      byId('facturaStep1').classList.remove('d-none');
+      byId('facturaStep2').classList.add('d-none');
+      byId('facturaCargarBtn').classList.add('d-none');
+      byId('facturaDropContent').classList.remove('d-none');
+      byId('facturaProcessing').classList.add('d-none');
+      byId('facturaDropZone').style.borderColor = '#ced4da';
+      byId('facturaFileInput').value = '';
+      new bootstrap.Modal(byId('facturaIAModal')).show();
+    });
+
+    function processInvoiceFile(file) {
+      if (!file) { return; }
+      if (file.size > 10 * 1024 * 1024) {
+        showMessage('danger', 'El archivo es muy grande. Máximo 10 MB.');
+        return;
+      }
+      byId('facturaDropContent').classList.add('d-none');
+      byId('facturaProcessing').classList.remove('d-none');
+
+      var formData = new FormData();
+      formData.append('factura', file);
+      var url = appendTokenToUrl('api/facturas_ia.php');
+
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + (token || ''), 'X-Token': token || '' },
+        body: formData
+      }).then(parseResponse).then(function (body) {
+        byId('facturaStep1').classList.add('d-none');
+        byId('facturaStep2').classList.remove('d-none');
+        byId('facturaCargarBtn').classList.remove('d-none');
+        renderIAResults(body.data || {});
+      }).catch(function (err) {
+        byId('facturaDropContent').classList.remove('d-none');
+        byId('facturaProcessing').classList.add('d-none');
+        showMessage('danger', 'Error IA: ' + (err.message || 'Desconocido'));
+        bootstrap.Modal.getInstance(byId('facturaIAModal')).hide();
+      });
+    }
+
+    function renderIAResults(data) {
+      var set = function (id, val) { var el = byId(id); if (el && val) { el.value = val; } };
+      set('ia_fecha', data.fecha);
+      set('ia_facturaNumero', data.factura_numero);
+      set('ia_proveedorNit', data.nit);
+      set('ia_proveedorNombre', data.proveedor);
+
+      var items = Array.isArray(data.items) ? data.items : [];
+      var opts = productsCache.map(function (p) {
+        return '<option value="' + p.id + '">' + p.sku + ' — ' + p.nombre + '</option>';
+      }).join('');
+
+      var tbody = byId('iaItemsBody');
+      tbody.innerHTML = items.map(function (item) {
+        var desc = String(item.descripcion || '');
+        var qty  = parseFloat(item.cantidad        || 1).toFixed(3);
+        var cost = parseFloat(item.precio_unitario || 0).toFixed(2);
+        return '<tr>' +
+          '<td class="small text-muted" style="max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="' + desc.replace(/"/g,'&quot;') + '">' + desc + '</td>' +
+          '<td><select class="form-select form-select-sm ia-product-sel" style="min-width:190px"><option value="">— Seleccionar producto —</option>' + opts + '</select></td>' +
+          '<td><input type="number" class="form-control form-control-sm ia-qty" value="' + qty + '" min="0.001" step="0.001" style="width:80px"></td>' +
+          '<td><input type="number" class="form-control form-control-sm ia-cost" value="' + cost + '" min="0" step="0.01" style="width:90px"></td>' +
+          '<td><button class="btn btn-sm btn-outline-danger ia-rm" type="button">✕</button></td>' +
+        '</tr>';
+      }).join('');
+
+      /* Auto-match por palabras clave */
+      var rows = tbody.querySelectorAll('tr');
+      items.forEach(function (item, i) {
+        var desc  = (item.descripcion || '').toLowerCase();
+        var words = desc.split(/\s+/).filter(function (w) { return w.length > 3; });
+        var best = null; var score = 0;
+        productsCache.forEach(function (p) {
+          var hay = ((p.nombre || '') + ' ' + (p.sku || '')).toLowerCase();
+          var s = words.reduce(function (acc, w) { return acc + (hay.indexOf(w) !== -1 ? 1 : 0); }, 0);
+          if (s > score) { score = s; best = p; }
+        });
+        if (best && score >= 1) {
+          var sel = rows[i] && rows[i].querySelector('.ia-product-sel');
+          if (sel) { sel.value = best.id; }
+        }
+      });
+
+      tbody.addEventListener('click', function (e) {
+        if (e.target.classList.contains('ia-rm')) { e.target.closest('tr').remove(); }
+      });
+    }
+
+    byId('facturaCargarBtn').addEventListener('click', function () {
+      var rows = byId('iaItemsBody').querySelectorAll('tr');
+      var loaded = 0;
+      rows.forEach(function (row) {
+        var productId = Number(row.querySelector('.ia-product-sel').value);
+        var qty  = Number(row.querySelector('.ia-qty').value);
+        var cost = Number(row.querySelector('.ia-cost').value);
+        if (!productId || qty <= 0) { return; }
+        var product = productsCache.find(function (p) { return p.id === productId; });
+        if (!product) { return; }
+        purchaseItems.push({
+          productoId: product.id,
+          nombre: product.nombre + ' (' + product.sku + ')',
+          cantidad: qty,
+          costoUnitario: cost
+        });
+        loaded++;
+      });
+
+      var form = byId('purchaseForm');
+      var get  = function (id) { var el = byId(id); return el ? el.value : ''; };
+      var fecha = get('ia_fecha'); var factNum = get('ia_facturaNumero');
+      var provNit = get('ia_proveedorNit'); var provNom = get('ia_proveedorNombre');
+      if (fecha   && form.elements.fechaCompra)    { form.elements.fechaCompra.value    = fecha; }
+      if (factNum && form.elements.facturaNumero)  { form.elements.facturaNumero.value  = factNum; }
+      if (provNit && form.elements.proveedorNit)   { form.elements.proveedorNit.value   = provNit; }
+      if (provNom && form.elements.proveedorNombre){ form.elements.proveedorNombre.value = provNom; }
+
+      renderPurchaseItems();
+      bootstrap.Modal.getInstance(byId('facturaIAModal')).hide();
+      if (loaded > 0) {
+        showMessage('success', loaded + ' ítem(s) cargados desde la factura. Revisa las cantidades y precios, luego guarda.');
+      } else {
+        showMessage('warning', 'No se cargaron ítems. Selecciona el producto del sistema para cada línea de la factura.');
+      }
+    });
+
+    byId('facturaFileInput').addEventListener('change', function (e) {
+      if (e.target.files[0]) { processInvoiceFile(e.target.files[0]); }
+    });
+
+    var dropZone = byId('facturaDropZone');
+    dropZone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      dropZone.style.borderColor = '#0d6efd';
+    });
+    dropZone.addEventListener('dragleave', function () {
+      dropZone.style.borderColor = '#ced4da';
+    });
+    dropZone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropZone.style.borderColor = '#ced4da';
+      var f = e.dataTransfer.files[0];
+      if (f) { processInvoiceFile(f); }
+    });
+
     byId('addItemForm').addEventListener('submit', function (event) {
       event.preventDefault();
       var producto = posAC.getSelected();
