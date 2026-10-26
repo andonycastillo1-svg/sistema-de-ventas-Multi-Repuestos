@@ -9,10 +9,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['message' => 'Método no permitido.'], 405);
 }
 
-if (!defined('CLAUDE_API_KEY') || strpos(CLAUDE_API_KEY, 'TU_') === 0 || CLAUDE_API_KEY === '') {
+if (!defined('GEMINI_API_KEY') || strpos(GEMINI_API_KEY, 'TU_') === 0 || GEMINI_API_KEY === '') {
     json_response([
         'message' => 'La importación con IA no está configurada. ' .
-                     'Agrega CLAUDE_API_KEY en api/db_config.php.',
+                     'Agrega GEMINI_API_KEY en api/db_config.php ' .
+                     '(clave gratuita en aistudio.google.com/apikey).',
     ], 503);
 }
 
@@ -22,23 +23,27 @@ if (!function_exists('curl_init')) {
 
 $uploadError = $_FILES['factura']['error'] ?? UPLOAD_ERR_NO_FILE;
 if ($uploadError !== UPLOAD_ERR_OK) {
-    $messages = [
+    $errMsg = [
         UPLOAD_ERR_INI_SIZE   => 'El archivo supera el tamaño permitido por el servidor.',
         UPLOAD_ERR_FORM_SIZE  => 'El archivo supera el tamaño permitido.',
         UPLOAD_ERR_PARTIAL    => 'El archivo se subió parcialmente.',
         UPLOAD_ERR_NO_FILE    => 'No se recibió ningún archivo.',
         UPLOAD_ERR_NO_TMP_DIR => 'Error interno del servidor (tmp).',
         UPLOAD_ERR_CANT_WRITE => 'Error al escribir el archivo en el servidor.',
-    ];
-    json_response(['message' => $messages[$uploadError] ?? 'Error al recibir el archivo.'], 400);
+    ][$uploadError] ?? 'Error al recibir el archivo (código ' . $uploadError . ').';
+    json_response(['message' => $errMsg], 400);
 }
 
-$file = $_FILES['factura'];
+$file     = $_FILES['factura'];
 $mimeType = mime_content_type($file['tmp_name']) ?: 'application/octet-stream';
 
-$allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+// Gemini inline_data soporta: image/jpeg, image/png, image/webp, image/gif
+$allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 if (!in_array($mimeType, $allowedTypes, true)) {
-    json_response(['message' => 'Tipo de archivo no soportado. Usa JPG, PNG, WebP o PDF.'], 400);
+    json_response([
+        'message' => 'Tipo de archivo no soportado (' . $mimeType . '). ' .
+                     'Los PDFs se convierten automáticamente a imagen en tu navegador.',
+    ], 400);
 }
 
 if ($file['size'] > 10 * 1024 * 1024) {
@@ -51,55 +56,47 @@ if ($rawFile === false) {
 }
 $fileData = base64_encode($rawFile);
 
-$prompt = 'Eres un asistente de extracción de datos de facturas de compra. '
-    . 'Analiza este documento y extrae SOLO la información en JSON con esta estructura exacta, '
-    . 'sin texto adicional, sin markdown, sin explicaciones:\n'
+$prompt = 'Eres un asistente experto en extracción de datos de facturas de compra. '
+    . 'Analiza esta imagen y extrae los datos en JSON con esta estructura exacta '
+    . '(sin texto adicional, sin markdown, solo JSON válido):\n'
     . '{\n'
-    . '  "proveedor": "nombre del proveedor o empresa",\n'
-    . '  "nit": "NIT o RUT del proveedor si aparece, sino vacío",\n'
-    . '  "factura_numero": "número de factura si aparece, sino vacío",\n'
-    . '  "fecha": "YYYY-MM-DD si aparece, sino vacío",\n'
+    . '  "proveedor": "nombre del proveedor o empresa emisora",\n'
+    . '  "nit": "número de NIT, RFC o RUC del proveedor si aparece",\n'
+    . '  "factura_numero": "número o serie de la factura si aparece",\n'
+    . '  "fecha": "fecha en formato YYYY-MM-DD, o vacío si no aparece",\n'
     . '  "items": [\n'
-    . '    { "descripcion": "descripción del producto", "cantidad": 1, "precio_unitario": 0.00 }\n'
+    . '    { "descripcion": "descripción completa del producto o servicio", '
+    . '"cantidad": 1, "precio_unitario": 0.00 }\n'
     . '  ]\n'
     . '}\n'
-    . 'Si un campo no aparece en el documento, usa string vacío o 0. '
-    . 'Responde SOLO con el JSON válido.';
-
-if ($mimeType === 'application/pdf') {
-    $content = [
-        [
-            'type'   => 'document',
-            'source' => ['type' => 'base64', 'media_type' => 'application/pdf', 'data' => $fileData],
-        ],
-        ['type' => 'text', 'text' => $prompt],
-    ];
-} else {
-    $content = [
-        [
-            'type'   => 'image',
-            'source' => ['type' => 'base64', 'media_type' => $mimeType, 'data' => $fileData],
-        ],
-        ['type' => 'text', 'text' => $prompt],
-    ];
-}
+    . 'Reglas: si un campo no aparece usa string vacío o 0; '
+    . 'incluye TODOS los ítems de la factura; '
+    . 'precio_unitario debe ser el precio por unidad (sin impuestos si están separados); '
+    . 'responde SOLO con el JSON.';
 
 $requestBody = json_encode([
-    'model'      => 'claude-haiku-5-5',
-    'max_tokens' => 2048,
-    'messages'   => [['role' => 'user', 'content' => $content]],
+    'contents' => [[
+        'parts' => [
+            ['inline_data' => ['mime_type' => $mimeType, 'data' => $fileData]],
+            ['text' => $prompt],
+        ],
+    ]],
+    'generationConfig' => [
+        'temperature'      => 0.1,
+        'responseMimeType' => 'application/json',
+        'maxOutputTokens'  => 2048,
+    ],
 ]);
 
-$ch = curl_init('https://api.anthropic.com/v1/messages');
+$url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='
+     . rawurlencode(GEMINI_API_KEY);
+
+$ch = curl_init($url);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST           => true,
     CURLOPT_POSTFIELDS     => $requestBody,
-    CURLOPT_HTTPHEADER     => [
-        'Content-Type: application/json',
-        'x-api-key: ' . CLAUDE_API_KEY,
-        'anthropic-version: 2023-06-01',
-    ],
+    CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
     CURLOPT_TIMEOUT        => 30,
     CURLOPT_SSL_VERIFYPEER => true,
 ]);
@@ -110,17 +107,17 @@ $curlError = curl_error($ch);
 curl_close($ch);
 
 if ($curlError) {
-    json_response(['message' => 'Error de conexión con la IA: ' . $curlError], 503);
+    json_response(['message' => 'Error de conexión con Gemini: ' . $curlError], 503);
 }
 
 if ($httpCode !== 200) {
     $errData = json_decode($response, true);
     $errMsg  = $errData['error']['message'] ?? 'HTTP ' . $httpCode;
-    json_response(['message' => 'Error de la API de IA: ' . $errMsg], 503);
+    json_response(['message' => 'Error de Gemini: ' . $errMsg], 503);
 }
 
 $apiResponse = json_decode($response, true);
-$text        = trim($apiResponse['content'][0]['text'] ?? '');
+$text        = trim($apiResponse['candidates'][0]['content']['parts'][0]['text'] ?? '');
 
 $extracted = json_decode($text, true);
 if (!is_array($extracted)) {
@@ -132,7 +129,7 @@ if (!is_array($extracted)) {
 if (!is_array($extracted) || empty($extracted['items'])) {
     json_response([
         'message' => 'No se pudo extraer información de la factura. ' .
-                     'Intenta con una imagen más clara y bien iluminada.',
+                     'Intenta con una imagen más clara, bien iluminada y enfocada.',
     ], 422);
 }
 

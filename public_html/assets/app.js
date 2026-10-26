@@ -722,17 +722,9 @@
       new bootstrap.Modal(byId('facturaIAModal')).show();
     });
 
-    function processInvoiceFile(file) {
-      if (!file) { return; }
-      if (file.size > 10 * 1024 * 1024) {
-        showMessage('danger', 'El archivo es muy grande. Máximo 10 MB.');
-        return;
-      }
-      byId('facturaDropContent').classList.add('d-none');
-      byId('facturaProcessing').classList.remove('d-none');
-
+    function sendInvoiceBlob(blob) {
       var formData = new FormData();
-      formData.append('factura', file);
+      formData.append('factura', blob, 'factura.jpg');
       var url = appendTokenToUrl('api/facturas_ia.php');
 
       fetch(url, {
@@ -750,6 +742,50 @@
         showMessage('danger', 'Error IA: ' + (err.message || 'Desconocido'));
         bootstrap.Modal.getInstance(byId('facturaIAModal')).hide();
       });
+    }
+
+    function processInvoiceFile(file) {
+      if (!file) { return; }
+      if (file.size > 20 * 1024 * 1024) {
+        showMessage('danger', 'El archivo es muy grande. Máximo 20 MB.');
+        return;
+      }
+      byId('facturaDropContent').classList.add('d-none');
+      byId('facturaProcessing').classList.remove('d-none');
+
+      var isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+      if (isPDF && typeof pdfjsLib !== 'undefined') {
+        // Convertir página 1 del PDF a imagen JPEG usando PDF.js
+        file.arrayBuffer().then(function (buf) {
+          return pdfjsLib.getDocument({ data: buf }).promise;
+        }).then(function (pdf) {
+          return pdf.getPage(1);
+        }).then(function (page) {
+          var scale    = 2.0;
+          var viewport = page.getViewport({ scale: scale });
+          var canvas   = document.createElement('canvas');
+          canvas.width  = viewport.width;
+          canvas.height = viewport.height;
+          var ctx = canvas.getContext('2d');
+          return page.render({ canvasContext: ctx, viewport: viewport }).promise
+            .then(function () {
+              return new Promise(function (resolve) {
+                canvas.toBlob(resolve, 'image/jpeg', 0.92);
+              });
+            });
+        }).then(function (blob) {
+          sendInvoiceBlob(blob);
+        }).catch(function (err) {
+          byId('facturaDropContent').classList.remove('d-none');
+          byId('facturaProcessing').classList.add('d-none');
+          showMessage('danger', 'Error al procesar el PDF: ' + (err.message || err));
+          bootstrap.Modal.getInstance(byId('facturaIAModal')).hide();
+        });
+      } else {
+        // Imagen normal: enviar directamente
+        sendInvoiceBlob(file);
+      }
     }
 
     function renderIAResults(data) {
