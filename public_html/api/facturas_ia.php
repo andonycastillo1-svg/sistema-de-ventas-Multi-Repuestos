@@ -88,32 +88,47 @@ $requestBody = json_encode([
     ],
 ]);
 
-$url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key='
-     . rawurlencode(GEMINI_API_KEY);
+// Intentar con modelos en orden — si uno está saturado o no disponible, pasa al siguiente
+$models = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-3.8-flash'];
+$response  = '';
+$httpCode  = 0;
+$lastError = '';
 
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_POST           => true,
-    CURLOPT_POSTFIELDS     => $requestBody,
-    CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-    CURLOPT_TIMEOUT        => 30,
-    CURLOPT_SSL_VERIFYPEER => true,
-]);
+foreach ($models as $model) {
+    $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+         . $model . ':generateContent?key=' . rawurlencode(GEMINI_API_KEY);
 
-$response  = curl_exec($ch);
-$httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-curl_close($ch);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $requestBody,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_SSL_VERIFYPEER => true,
+    ]);
 
-if ($curlError) {
-    json_response(['message' => 'Error de conexión con Gemini: ' . $curlError], 503);
+    $response  = curl_exec($ch);
+    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError) { $lastError = 'cURL: ' . $curlError; continue; }
+
+    if ($httpCode === 200) { break; } // éxito
+
+    $errData   = json_decode($response, true);
+    $lastError = $errData['error']['message'] ?? 'HTTP ' . $httpCode;
+
+    // Solo reintentar con otro modelo si es sobrecarga o modelo no disponible
+    $retryable = ($httpCode === 503 || $httpCode === 429 ||
+                  strpos($lastError, 'no longer available') !== false ||
+                  strpos($lastError, 'high demand') !== false);
+    if (!$retryable) { break; }
 }
 
 if ($httpCode !== 200) {
-    $errData = json_decode($response, true);
-    $errMsg  = $errData['error']['message'] ?? 'HTTP ' . $httpCode;
-    json_response(['message' => 'Error de Gemini: ' . $errMsg], 503);
+    json_response(['message' => 'Error de Gemini: ' . $lastError], 503);
 }
 
 $apiResponse = json_decode($response, true);
