@@ -493,14 +493,134 @@
         var vehiculo = [p.marca_vehiculo, p.modelo_vehiculo, p.anio_inicio && p.anio_fin ? p.anio_inicio + '-' + p.anio_fin : p.anio_inicio]
           .filter(Boolean).join(' ');
         return '<tr><td class="text-nowrap">' + escHtml(p.sku) + '</td>' +
-          '<td><div class="fw-semibold">' + escHtml(p.nombre) + '</div>' +
+          '<td><div class="d-flex gap-2 align-items-start">' +
+          (p.imagen ? '<img src="' + escHtml(p.imagen) + '" alt="" loading="lazy" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">' : '') +
+          '<div><div class="fw-semibold">' + escHtml(p.nombre) + '</div>' +
           (p.descripcion ? '<div class="text-muted">' + escHtml(p.descripcion) + '</div>' : '') +
-          (vehiculo ? '<div class="text-muted fst-italic">' + escHtml(vehiculo) + '</div>' : '') + '</td>' +
+          (vehiculo ? '<div class="text-muted fst-italic">' + escHtml(vehiculo) + '</div>' : '') + '</div></div></td>' +
           '<td class="text-end">' + Number(p.stock_actual || 0) + '</td>' +
           '<td class="text-end">' + fmt(p.costo_compra || 0) + '</td>' +
           '<td class="text-end fw-bold">' + fmt(p.precio_final || p.precio_venta || 0) + '</td>' +
           '<td class="text-end"><button type="button" class="btn btn-outline-primary btn-sm btn-edit-product" data-product-id="' + p.id + '">✏ Editar</button></td></tr>';
       }).join('') + '</tbody></table>';
+  }
+
+  /* -------- Fotos de productos -------- */
+  var fotoTargetId = null;
+
+  function renderFotos() {
+    var grid = byId('fotosGrid');
+    if (!grid) { return; }
+    var q = (byId('fotosSearch').value || '').toLowerCase().trim();
+    var checked = document.querySelector('input[name="fotosFiltro"]:checked');
+    var f = checked ? checked.value : 'todos';
+    var conFoto = productsCache.filter(function (p) { return p.imagen; }).length;
+    byId('fotosStats').textContent = conFoto + ' de ' + productsCache.length + ' productos tienen foto.';
+    var list = productsCache.filter(function (p) {
+      if (f === 'sin' && p.imagen) { return false; }
+      if (f === 'con' && !p.imagen) { return false; }
+      return !q || (p.nombre + ' ' + p.sku).toLowerCase().indexOf(q) !== -1;
+    });
+    if (!list.length) {
+      grid.innerHTML = '<div class="col-12 text-muted">Sin productos para mostrar.</div>';
+      return;
+    }
+    grid.innerHTML = list.map(function (p) {
+      var thumb = p.imagen
+        ? '<img src="' + escHtml(p.imagen) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">'
+        : '<div class="text-center text-muted"><div style="font-size:2.2rem">📷</div><div class="small">Sin foto</div></div>';
+      return '<div class="col-6 col-md-4 col-xl-3"><div class="card h-100 shadow-sm">' +
+        '<div class="d-flex align-items-center justify-content-center bg-light rounded-top position-relative" style="height:160px;overflow:hidden" data-foto-box="' + p.id + '">' + thumb + '</div>' +
+        '<div class="card-body p-2 d-flex flex-column">' +
+          '<div class="fw-semibold small lh-sm">' + escHtml(p.nombre) + '</div>' +
+          '<div class="text-muted" style="font-size:.72rem">' + escHtml(p.sku) + '</div>' +
+          '<div class="mt-auto pt-2 d-flex gap-1">' +
+            '<button type="button" class="btn btn-sm btn-primary flex-fill" data-foto-upload="' + p.id + '">' + (p.imagen ? 'Cambiar' : 'Subir foto') + '</button>' +
+            (p.imagen ? '<button type="button" class="btn btn-sm btn-outline-danger" data-foto-delete="' + p.id + '" title="Quitar foto">✕</button>' : '') +
+          '</div>' +
+        '</div></div></div>';
+    }).join('');
+  }
+
+  /* Reduce la foto en el navegador (máx. 1200px, JPEG) para ahorrar ancho de banda */
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var scale = Math.min(1, 1200 / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { b ? resolve(b) : reject(new Error('No se pudo procesar la imagen.')); }, 'image/jpeg', 0.85);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('El archivo no es una imagen válida.')); };
+      img.src = url;
+    });
+  }
+
+  function postFoto(formData) {
+    return fetch(appendTokenToUrl('api/producto_imagen.php'), {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: 'Bearer ' + (token || ''), 'X-Token': token || '' },
+      body: formData
+    }).then(parseResponse);
+  }
+
+  function setProductImage(id, url) {
+    productsCache.forEach(function (p) { if (String(p.id) === String(id)) { p.imagen = url; } });
+    renderFotos();
+    renderProducts();
+  }
+
+  function bindFotosModule() {
+    var input = byId('fotoFileInput');
+    if (!input) { return; }
+    byId('fotosSearch').addEventListener('input', renderFotos);
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="fotosFiltro"]'), function (r) {
+      r.addEventListener('change', renderFotos);
+    });
+    byId('fotosGrid').addEventListener('click', function (e) {
+      var up = e.target.closest('[data-foto-upload]');
+      var del = e.target.closest('[data-foto-delete]');
+      if (up) {
+        fotoTargetId = up.getAttribute('data-foto-upload');
+        input.value = '';
+        input.click();
+      } else if (del) {
+        var id = del.getAttribute('data-foto-delete');
+        if (!window.confirm('¿Quitar la foto de este producto?')) { return; }
+        var fd = new FormData();
+        fd.append('id', id);
+        fd.append('accion', 'eliminar');
+        postFoto(fd).then(function () { setProductImage(id, null); showMessage('success', 'Foto eliminada.'); })
+          .catch(function (err) { showMessage('danger', err.message); });
+      }
+    });
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      var id = fotoTargetId;
+      if (!file || !id) { return; }
+      var box = document.querySelector('[data-foto-box="' + id + '"]');
+      if (box) { box.innerHTML = '<div class="spinner-border text-primary" role="status"></div>'; }
+      shrinkImage(file).then(function (blob) {
+        var fd = new FormData();
+        fd.append('id', id);
+        fd.append('imagen', blob, id + '.jpg');
+        return postFoto(fd);
+      }).then(function (body) {
+        setProductImage(id, body.imagen);
+        showMessage('success', 'Foto guardada.');
+      }).catch(function (err) {
+        renderFotos();
+        showMessage('danger', err.message);
+      });
+    });
   }
 
   /* Sincroniza precio sin IVA <-> precio final y muestra el margen */
@@ -653,6 +773,7 @@
       if (costoInput && product.costo_compra) { costoInput.value = Number(product.costo_compra).toFixed(2); }
     });
 
+    bindFotosModule();
     bindPriceFields(byId('productForm'));
     if (byId('editProductForm')) { bindPriceFields(byId('editProductForm')); }
     if (byId('productsSearch')) {
@@ -1519,7 +1640,7 @@
         event.preventDefault();
         if (!token) { return; }
         var moduleName = element.getAttribute('data-module');
-        if (['productos', 'compras', 'usuarios', 'bancos', 'gastos', 'cuentas'].indexOf(moduleName) !== -1 && currentRole() !== 'ADMINISTRADOR') {
+        if (['productos', 'fotos', 'compras','usuarios', 'bancos', 'gastos', 'cuentas'].indexOf(moduleName) !== -1 && currentRole() !== 'ADMINISTRADOR') {
           showMessage('warning', 'Tu rol VENDEDOR no tiene permiso para este módulo.');
           return;
         }
@@ -1528,6 +1649,7 @@
         if (moduleName === 'inventario') { loadInventory().catch(function () {}); }
         if (moduleName === 'gastos')     { loadGastos(); }
         if (moduleName === 'cuentas')    { loadCuentas(); }
+        if (moduleName === 'fotos')      { loadProducts().then(renderFotos).catch(function (e) { showMessage('danger', e.message); }); }
       });
     });
 

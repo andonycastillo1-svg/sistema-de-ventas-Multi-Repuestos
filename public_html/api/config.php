@@ -259,3 +259,14 @@ function request_json(): array
 
     return $data;
 }
+
+function product_image_path(int $id): string
+{
+    return dirname(__DIR__) . '/uploads/productos/' . $id . '.jpg';
+}
+
+function product_image_url(int $id): ?string
+{
+    $path = product_image_path($id);
+    return is_file($path) ? 'uploads/productos/' . $id . '.jpg?v=' . filemtime($path) : null;
+}

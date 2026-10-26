@@ -39,7 +39,12 @@ if ($method === 'GET') {
               ORDER BY p.id DESC LIMIT 200'
         );
     }
-    json_response(['productos' => $stmt->fetchAll()]);
+    $productos = $stmt->fetchAll();
+    foreach ($productos as &$row) {
+        $row['imagen'] = product_image_url((int) $row['id']);
+    }
+    unset($row);
+    json_response(['productos' => $productos]);
 }
 
 if ($method === 'PUT') {

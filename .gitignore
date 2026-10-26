@@ -9,3 +9,7 @@ public_html.zip
 .vscode/
 *.DS_Store
 Thumbs.db
+
+# Fotos de productos subidas desde la app
+public_html/uploads/productos/*
+!public_html/uploads/productos/.gitkeep

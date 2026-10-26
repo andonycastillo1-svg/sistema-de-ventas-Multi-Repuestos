@@ -153,6 +153,7 @@
         <div class="sidebar-brand sidebar-admin-item">Administración</div>
         <ul class="nav flex-column gap-1">
           <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="productos"><span class="icon">📦</span>Productos</a></li>
+          <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="fotos"><span class="icon">📷</span>Fotos de productos</a></li>
           <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="compras"><span class="icon">🛒</span>Compras</a></li>
           <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="usuarios"><span class="icon">👤</span>Usuarios</a></li>
           <li class="sidebar-admin-item"><a href="#" class="sidebar-link" data-module="bancos"><span class="icon">🏦</span>Bancos y pagos</a></li>
@@ -422,6 +423,24 @@
       </section>
 
       <!-- ===== COMPRAS ===== -->
+      <section id="module-fotos" class="module-view d-none">
+        <h1 class="h3 fw-bold mb-1">Fotos de productos</h1>
+        <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> sube la foto real de cada repuesto. Se mostrará en la tienda en línea en lugar de la ilustración. Desde el celular puedes tomar la foto directamente con la cámara. Las fotos se reducen automáticamente para que la tienda cargue rápido.</div>
+        <div class="card shadow-sm"><div class="card-body">
+          <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+            <input id="fotosSearch" type="search" class="form-control" style="max-width:340px" placeholder="Buscar por nombre o SKU…">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Filtro de fotos">
+              <input type="radio" class="btn-check" name="fotosFiltro" id="fotosAll" value="todos" checked><label class="btn btn-outline-secondary" for="fotosAll">Todos</label>
+              <input type="radio" class="btn-check" name="fotosFiltro" id="fotosSin" value="sin"><label class="btn btn-outline-secondary" for="fotosSin">Sin foto</label>
+              <input type="radio" class="btn-check" name="fotosFiltro" id="fotosCon" value="con"><label class="btn btn-outline-secondary" for="fotosCon">Con foto</label>
+            </div>
+          </div>
+          <div id="fotosStats" class="small text-muted mb-2"></div>
+          <div id="fotosGrid" class="row g-3"></div>
+          <input id="fotoFileInput" type="file" accept="image/*" class="d-none">
+        </div></div>
+      </section>
+
       <section id="module-compras" class="module-view d-none">
         <h1 class="h3 fw-bold mb-1">Compras</h1>
         <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> registra la factura de compra completa: fecha, proveedor y todos los repuestos incluidos. Al guardar, se carga inventario y Kardex.</div>
@@ -873,6 +892,6 @@
   <!-- Tesseract.js: OCR local en el navegador, sin API externa -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/app.js?v=21"></script>
+  <script src="assets/app.js?v=22"></script>
 </body>
 </html>

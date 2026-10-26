@@ -31,6 +31,10 @@ try {
     );
 }
 $productos = $stmt->fetchAll();
+foreach ($productos as &$row) {
+    $row['imagen'] = product_image_url((int) $row['id']);
+}
+unset($row);
 
 $categorias = array_values(array_unique(array_filter(
     array_column($productos, 'categoria')
