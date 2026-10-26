@@ -856,6 +856,23 @@
               </div>
             </div>
 
+            <div class="row g-2 mb-3 p-2 rounded align-items-end" style="background:#fff7ed;border:1px solid #fed7aa">
+              <div class="col-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1" for="ia_moneda">Moneda de la factura</label>
+                <select id="ia_moneda" class="form-select">
+                  <option value="USD">Dólares (US$)</option>
+                  <option value="GTQ">Quetzales (Q)</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1" for="ia_tipoCambio">Tipo de cambio (Q por US$1)</label>
+                <input id="ia_tipoCambio" type="number" class="form-control" min="0.0001" step="0.0001" value="7.78">
+              </div>
+              <div class="col-12 col-md-6 small text-muted" id="ia_cambioHint">
+                El costo en quetzales se calcula multiplicando el precio de la factura por el tipo de cambio. El valor que pongas se recuerda para la próxima factura.
+              </div>
+            </div>
+
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
                 <thead class="table-light">
@@ -863,7 +880,8 @@
                     <th style="min-width:160px">Descripción en factura</th>
                     <th style="min-width:200px">Producto en sistema <span class="text-muted fw-normal small">(selecciona o deja vacío para omitir)</span></th>
                     <th>Cantidad</th>
-                    <th>Costo unit.</th>
+                    <th>Costo factura <span id="ia_monedaLbl" class="text-muted fw-normal">(US$)</span></th>
+                    <th class="text-end">Costo unit. en Q</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -892,6 +910,6 @@
   <!-- Tesseract.js: OCR local en el navegador, sin API externa -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/app.js?v=22"></script>
+  <script src="assets/app.js?v=23"></script>
 </body>
 </html>

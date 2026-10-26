@@ -923,7 +923,11 @@
         .map(function (l) { return l.replace(/\r/g, '').trim(); })
         .filter(function (l) { return l.length > 1; });
 
-      var result = { proveedor: '', nit: '', factura_numero: '', fecha: '', items: [] };
+      var result = { proveedor: '', nit: '', factura_numero: '', fecha: '', moneda: 'USD', items: [] };
+      // Facturas en quetzales: "Q 123.45" o "GTQ"; si no, asumimos dólares (proveedores de El Salvador)
+      if (/\bGTQ\b|quetzal|\bQ\s?\d[\d,]*\.\d{2}/i.test(rawText) && !/\$\s?\d|US\$|\bUSD\b/.test(rawText)) {
+        result.moneda = 'GTQ';
+      }
 
       /* ---- METADATOS ---- */
 
@@ -1174,7 +1178,39 @@
       }
     }
 
+    /* -------- Moneda y tipo de cambio de la factura -------- */
+    var TC_KEY = 'mr_tipoCambioUSD';
+    function savedRate() {
+      try { var v = Number(localStorage.getItem(TC_KEY)); return v > 0 ? v : 7.78; } catch (e) { return 7.78; }
+    }
+    function iaRate() {
+      if (byId('ia_moneda').value !== 'USD') { return 1; }
+      var v = Number(byId('ia_tipoCambio').value);
+      return v > 0 ? v : 0;
+    }
+    function updateIACostsQ() {
+      var usd = byId('ia_moneda').value === 'USD';
+      byId('ia_tipoCambio').disabled = !usd;
+      byId('ia_monedaLbl').textContent = usd ? '(US$)' : '(Q)';
+      var rate = iaRate();
+      Array.prototype.forEach.call(byId('iaItemsBody').querySelectorAll('tr'), function (row) {
+        var cost = Number(row.querySelector('.ia-cost').value) || 0;
+        row.querySelector('.ia-costq').textContent = rate > 0 ? fmt(cost * rate) : '—';
+      });
+    }
+    byId('ia_moneda').addEventListener('change', updateIACostsQ);
+    byId('ia_tipoCambio').addEventListener('input', function () {
+      var v = Number(this.value);
+      if (v > 0) { try { localStorage.setItem(TC_KEY, String(v)); } catch (e) {} }
+      updateIACostsQ();
+    });
+    byId('iaItemsBody').addEventListener('input', function (e) {
+      if (e.target.classList.contains('ia-cost')) { updateIACostsQ(); }
+    });
+
     function renderIAResults(data) {
+      byId('ia_moneda').value = data.moneda === 'GTQ' ? 'GTQ' : 'USD';
+      byId('ia_tipoCambio').value = savedRate();
       var set = function (id, val) { var el = byId(id); if (el && val) { el.value = val; } };
       set('ia_fecha', data.fecha);
       set('ia_facturaNumero', data.factura_numero);
@@ -1196,6 +1232,7 @@
           '<td><select class="form-select form-select-sm ia-product-sel" style="min-width:190px"><option value="">— Seleccionar producto —</option>' + opts + '</select></td>' +
           '<td><input type="number" class="form-control form-control-sm ia-qty" value="' + qty + '" min="0.001" step="0.001" style="width:80px"></td>' +
           '<td><input type="number" class="form-control form-control-sm ia-cost" value="' + cost + '" min="0" step="0.01" style="width:90px"></td>' +
+          '<td class="text-end fw-semibold text-nowrap ia-costq"></td>' +
           '<td><button class="btn btn-sm btn-outline-danger ia-rm" type="button">✕</button></td>' +
         '</tr>';
       }).join('');
@@ -1217,14 +1254,21 @@
         }
       });
 
-      tbody.addEventListener('click', function (e) {
+      tbody.onclick = function (e) {
         if (e.target.classList.contains('ia-rm')) { e.target.closest('tr').remove(); }
-      });
+      };
+      updateIACostsQ();
     }
 
     byId('facturaCargarBtn').addEventListener('click', function () {
       var rows = byId('iaItemsBody').querySelectorAll('tr');
       var loaded = 0;
+      var rate = iaRate();
+      if (!(rate > 0)) {
+        showMessage('warning', 'Ingresa un tipo de cambio válido antes de cargar la factura.');
+        byId('ia_tipoCambio').focus();
+        return;
+      }
       rows.forEach(function (row) {
         var productId = Number(row.querySelector('.ia-product-sel').value);
         var qty  = Number(row.querySelector('.ia-qty').value);
@@ -1236,7 +1280,7 @@
           productoId: product.id,
           nombre: product.nombre + ' (' + product.sku + ')',
           cantidad: qty,
-          costoUnitario: cost
+          costoUnitario: Math.round(cost * rate * 100) / 100
         });
         loaded++;
       });
@@ -1253,7 +1297,9 @@
       renderPurchaseItems();
       bootstrap.Modal.getInstance(byId('facturaIAModal')).hide();
       if (loaded > 0) {
-        showMessage('success', loaded + ' ítem(s) cargados desde la factura. Revisa las cantidades y precios, luego guarda.');
+        showMessage('success', loaded + ' ítem(s) cargados desde la factura' +
+          (rate !== 1 ? ' (convertidos a Q con tipo de cambio ' + rate + ')' : '') +
+          '. Revisa las cantidades y precios, luego guarda.');
       } else {
         showMessage('warning', 'No se cargaron ítems. Selecciona el producto del sistema para cada línea de la factura.');
       }
