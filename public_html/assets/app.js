@@ -710,7 +710,8 @@
       }).catch(function (error) { showMessage('danger', error.message); });
     });
 
-    /* -------- Importar Factura con IA -------- */
+    /* -------- Importar Factura — OCR local (Tesseract.js) -------- */
+
     byId('openFacturaIABtn').addEventListener('click', function () {
       byId('facturaStep1').classList.remove('d-none');
       byId('facturaStep2').classList.add('d-none');
@@ -722,24 +723,114 @@
       new bootstrap.Modal(byId('facturaIAModal')).show();
     });
 
-    function sendInvoiceBlob(blob) {
-      var formData = new FormData();
-      formData.append('factura', blob, 'factura.jpg');
-      var url = appendTokenToUrl('api/facturas_ia.php');
+    /* Extrae datos estructurados del texto OCR de una factura */
+    function parseInvoiceText(rawText) {
+      var lines = rawText.split('\n')
+        .map(function (l) { return l.replace(/\r/g, '').trim(); })
+        .filter(function (l) { return l.length > 1; });
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + (token || ''), 'X-Token': token || '' },
-        body: formData
-      }).then(parseResponse).then(function (body) {
+      var result = { proveedor: '', nit: '', factura_numero: '', fecha: '', items: [] };
+
+      /* -- Metadatos -- */
+      lines.forEach(function (line, idx) {
+        // Fecha
+        if (!result.fecha) {
+          var iso = line.match(/\b(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})\b/);
+          if (iso) { result.fecha = iso[1] + '-' + iso[2] + '-' + iso[3]; }
+          var dmy = line.match(/\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b/);
+          if (!result.fecha && dmy) {
+            result.fecha = dmy[3] + '-' + dmy[2].padStart(2,'0') + '-' + dmy[1].padStart(2,'0');
+          }
+        }
+        // NIT / RUT
+        if (!result.nit) {
+          var nitM = line.match(/(?:nit|rut|ruc|cif)[:\s.]+([0-9\-]+K?)/i);
+          if (nitM) { result.nit = nitM[1]; }
+        }
+        // Número de factura
+        if (!result.factura_numero) {
+          var invM = line.match(/(?:factura|serie|no\.?|número|folio|dte|ticket)[:\s#]+([A-Z0-9\-]+)/i);
+          if (invM) { result.factura_numero = invM[1]; }
+        }
+        // Proveedor: una de las 3 primeras líneas que parezca nombre de empresa
+        if (!result.proveedor && idx < 5 && line.length > 3 && !/^\d/.test(line)) {
+          if (!/(?:factura|fecha|cliente|direcci|tel|www\.|email|http)/i.test(line)) {
+            result.proveedor = line;
+          }
+        }
+      });
+
+      /* -- Ítems: busca líneas con descripción + números al final -- */
+      var skipPattern = /(?:^sub.?total|^total|^iva|^impuesto|^descuento|^factura|^fecha|^nit|^cliente|^proveedor|^direcci|^tel|^serie|^folio)/i;
+      lines.forEach(function (line) {
+        if (line.length < 4 || skipPattern.test(line)) { return; }
+
+        // Extrae todos los números de la línea
+        var numRe = /\b\d+(?:[.,]\d{1,2})?\b/g;
+        var nums = [], m;
+        while ((m = numRe.exec(line)) !== null) {
+          nums.push({ val: parseFloat(m[0].replace(',', '.')), pos: m.index });
+        }
+        if (nums.length < 2) { return; }
+
+        // Descripción: texto antes del primer número (quitando solo dígitos sueltos)
+        var firstNumPos = nums[0].pos;
+        var desc = line.substring(0, firstNumPos).replace(/[\d]/g, '').trim();
+        if (!desc || desc.length < 3) {
+          // Intenta con texto antes del penúltimo número
+          desc = line.replace(/[\d.,\s]+$/, '').trim();
+        }
+
+        // Cantidad: último-1 número; precio: último número
+        var qty   = nums[nums.length - 2].val;
+        var price = nums[nums.length - 1].val;
+
+        // Si qty parece precio (>qty normal) y solo hay 2 nums, asume qty=1
+        if (nums.length === 2 && qty > 500) { qty = 1; }
+        // Evitar filas que parezcan totales (número grande seguido de número grande)
+        if (qty > 1000 && price > 1000) { return; }
+
+        if (desc && desc.length >= 3 && price > 0) {
+          result.items.push({
+            descripcion:     desc.replace(/\s{2,}/g, ' ').replace(/[|:]/g, '').trim(),
+            cantidad:        qty,
+            precio_unitario: price
+          });
+        }
+      });
+
+      return result;
+    }
+
+    /* Corre OCR sobre un canvas y llena la tabla de resultados */
+    function runOCROnCanvas(canvas) {
+      if (typeof Tesseract === 'undefined') {
+        showMessage('danger', 'Tesseract no está disponible. Recarga la página.');
+        byId('facturaDropContent').classList.remove('d-none');
+        byId('facturaProcessing').classList.add('d-none');
+        return;
+      }
+      var procEl = byId('facturaProcessing');
+      var progEl = procEl ? procEl.querySelector('p') : null;
+
+      Tesseract.recognize(canvas, 'spa+eng', {
+        logger: function (msg) {
+          if (msg.status === 'recognizing text' && progEl) {
+            progEl.textContent = 'Leyendo texto… ' + Math.round((msg.progress || 0) * 100) + '%';
+          } else if (msg.status === 'loading language traineddata' && progEl) {
+            progEl.textContent = 'Cargando idioma (primera vez ~15 s)…';
+          }
+        }
+      }).then(function (result) {
+        var data = parseInvoiceText(result.data.text || '');
         byId('facturaStep1').classList.add('d-none');
         byId('facturaStep2').classList.remove('d-none');
         byId('facturaCargarBtn').classList.remove('d-none');
-        renderIAResults(body.data || {});
+        renderIAResults(data);
       }).catch(function (err) {
         byId('facturaDropContent').classList.remove('d-none');
         byId('facturaProcessing').classList.add('d-none');
-        showMessage('danger', 'Error IA: ' + (err.message || 'Desconocido'));
+        showMessage('danger', 'Error en OCR: ' + (err.message || err));
         bootstrap.Modal.getInstance(byId('facturaIAModal')).hide();
       });
     }
@@ -755,36 +846,49 @@
 
       var isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
+      function imageToCanvas(imgFile) {
+        return new Promise(function (resolve, reject) {
+          var img = new Image();
+          var url = URL.createObjectURL(imgFile);
+          img.onload = function () {
+            var c = document.createElement('canvas');
+            // Escalar a máx 3000px para mejor OCR sin memoria excesiva
+            var scale = Math.min(1, 3000 / Math.max(img.width, img.height));
+            c.width  = Math.round(img.width  * scale);
+            c.height = Math.round(img.height * scale);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
+            resolve(c);
+          };
+          img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('No se pudo cargar la imagen.')); };
+          img.src = url;
+        });
+      }
+
       if (isPDF && typeof pdfjsLib !== 'undefined') {
-        // Convertir página 1 del PDF a imagen JPEG usando PDF.js
-        file.arrayBuffer().then(function (buf) {
-          return pdfjsLib.getDocument({ data: buf }).promise;
-        }).then(function (pdf) {
-          return pdf.getPage(1);
-        }).then(function (page) {
-          var scale    = 2.0;
-          var viewport = page.getViewport({ scale: scale });
-          var canvas   = document.createElement('canvas');
-          canvas.width  = viewport.width;
-          canvas.height = viewport.height;
-          var ctx = canvas.getContext('2d');
-          return page.render({ canvasContext: ctx, viewport: viewport }).promise
-            .then(function () {
-              return new Promise(function (resolve) {
-                canvas.toBlob(resolve, 'image/jpeg', 0.92);
-              });
-            });
-        }).then(function (blob) {
-          sendInvoiceBlob(blob);
-        }).catch(function (err) {
+        file.arrayBuffer()
+          .then(function (buf) { return pdfjsLib.getDocument({ data: buf }).promise; })
+          .then(function (pdf) { return pdf.getPage(1); })
+          .then(function (page) {
+            var vp = page.getViewport({ scale: 2.5 });
+            var c  = document.createElement('canvas');
+            c.width  = vp.width;
+            c.height = vp.height;
+            return page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise
+              .then(function () { return c; });
+          })
+          .then(runOCROnCanvas)
+          .catch(function (err) {
+            byId('facturaDropContent').classList.remove('d-none');
+            byId('facturaProcessing').classList.add('d-none');
+            showMessage('danger', 'Error al procesar el PDF: ' + (err.message || err));
+          });
+      } else {
+        imageToCanvas(file).then(runOCROnCanvas).catch(function (err) {
           byId('facturaDropContent').classList.remove('d-none');
           byId('facturaProcessing').classList.add('d-none');
-          showMessage('danger', 'Error al procesar el PDF: ' + (err.message || err));
-          bootstrap.Modal.getInstance(byId('facturaIAModal')).hide();
+          showMessage('danger', err.message || 'Error al cargar la imagen.');
         });
-      } else {
-        // Imagen normal: enviar directamente
-        sendInvoiceBlob(file);
       }
     }
 
