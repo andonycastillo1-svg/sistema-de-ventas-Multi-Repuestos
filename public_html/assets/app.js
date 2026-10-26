@@ -1818,7 +1818,12 @@
         if (moduleName === 'gastos')     { loadGastos(); }
         if (moduleName === 'cuentas')    { loadCuentas(); }
         if (moduleName === 'usuarios')   { loadUsers(); }
-        if (moduleName === 'fotos')      { loadProducts().then(renderFotos).catch(function (e) { showMessage('danger', e.message); }); }
+        if (moduleName === 'fotos') {
+          byId('fotosStats').textContent = 'Cargando productos…';
+          loadProducts().then(renderFotos).catch(function (e) {
+            byId('fotosStats').innerHTML = '<span class="text-danger">No se pudieron cargar los productos: ' + escHtml(e.message) + '</span>';
+          });
+        }
       });
     });
 

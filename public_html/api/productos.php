@@ -8,6 +8,7 @@ $pdo = db();
 $method = $_GET['_method'] ?? $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    current_user(); // incluye costos: nunca público (la tienda usa tienda.php)
     try {
         $stmt = $pdo->query(
             'SELECT p.id, p.sku, p.codigo_barras, p.nombre, p.descripcion,

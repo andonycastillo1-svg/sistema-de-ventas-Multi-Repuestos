@@ -1,1 +1,7 @@
-
+# Las páginas HTML siempre se revalidan para que cada actualización se vea sin Ctrl+F5.
+# app.js lleva ?v=N en index.html, así que también se renueva al cambiar la versión.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
