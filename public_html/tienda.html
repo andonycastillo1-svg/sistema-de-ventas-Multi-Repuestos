@@ -139,6 +139,35 @@
     .art.photo::before { display: none; }
     .art.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 10px; transition: transform .25s; }
     .card:hover .art.photo img { transform: scale(1.05); }
+    .art.photo { cursor: zoom-in; }
+    .zoom-hint {
+      position: absolute; right: 10px; bottom: 10px; width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(2,22,47,.75); color: #fff; display: grid; place-items: center; pointer-events: none;
+    }
+
+    /* ---------- LIGHTBOX ---------- */
+    .lb { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center;
+      background: rgba(2,22,47,.88); padding: 16px; backdrop-filter: blur(4px); }
+    .lb.open { display: flex; animation: lbIn .18s ease-out; }
+    @keyframes lbIn { from { opacity: 0; } to { opacity: 1; } }
+    .lb-box { background: #fff; border-radius: 18px; overflow: hidden; width: 100%; max-width: 920px; max-height: 100%;
+      display: grid; grid-template-columns: 1.4fr 1fr; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+    .lb-img { background: #fff; display: grid; place-items: center; min-height: 320px; max-height: 80vh; overflow: hidden; touch-action: pinch-zoom; }
+    .lb-img img { width: 100%; height: 100%; max-height: 80vh; object-fit: contain; padding: 16px; }
+    .lb-info { padding: 24px; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid var(--line); overflow-y: auto; }
+    .lb-info h3 { margin: 0; font-size: 1.2rem; font-weight: 800; line-height: 1.25; }
+    .lb-info .price { font-size: 1.7rem; }
+    .lb-info .desc { -webkit-line-clamp: unset; font-size: .9rem; }
+    .lb-close { position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; border-radius: 50%; border: 0;
+      background: #fff; color: var(--ink); font-size: 1.5rem; line-height: 1; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+    .lb-close:hover { background: var(--brand); color: #fff; }
+    @media (max-width: 720px) {
+      .lb { padding: 0; align-items: flex-end; }
+      .lb-box { grid-template-columns: 1fr; border-radius: 18px 18px 0 0; max-height: 94vh; overflow-y: auto; }
+      .lb-img { min-height: 0; max-height: 58vh; }
+      .lb-img img { max-height: 58vh; }
+      .lb-info { border-left: 0; border-top: 1px solid var(--line); padding: 18px; }
+    }
     .badge {
       position: absolute; top: 12px; left: 12px; font-size: .7rem; font-weight: 700; letter-spacing: .02em;
       padding: 5px 10px; border-radius: 999px; color: #fff; display: inline-flex; align-items: center; gap: 5px;
@@ -340,6 +369,14 @@
     </div>
   </footer>
 
+  <div class="lb" id="lightbox" role="dialog" aria-modal="true" aria-label="Foto del producto">
+    <button type="button" class="lb-close" id="lbClose" aria-label="Cerrar">×</button>
+    <div class="lb-box">
+      <div class="lb-img"><img id="lbImg" alt=""></div>
+      <div class="lb-info" id="lbInfo"></div>
+    </div>
+  </div>
+
   <a class="fab" id="fabWa" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
     <svg width="30" height="30"><use href="#i-wa"/></svg>
   </a>
@@ -426,17 +463,24 @@
       return [p.marca_vehiculo, p.modelo_vehiculo, years].filter(Boolean).join(' ');
     }
 
+    function productMsg(p) {
+      var fit = fitment(p), out = Number(p.stock_actual || 0) <= 0;
+      return 'Hola Multi Parts, me interesa este repuesto:\n' +
+             '• ' + p.nombre + '\n• Código: ' + p.sku +
+             (fit ? '\n• Vehículo: ' + fit : '') +
+             '\n• Precio: Q' + money(p.precio_venta) +
+             (out ? '\n¿Me pueden confirmar disponibilidad?' : '\n¿Está disponible?');
+    }
+
     function card(p) {
       var a = artFor(p), st = stockInfo(p), fit = fitment(p);
       var out = Number(p.stock_actual || 0) <= 0;
-      var msg = 'Hola Multi Parts, me interesa este repuesto:\n' +
-                '• ' + p.nombre + '\n• Código: ' + p.sku +
-                (fit ? '\n• Vehículo: ' + fit : '') +
-                '\n• Precio: Q' + money(p.precio_venta) +
-                (out ? '\n¿Me pueden confirmar disponibilidad?' : '\n¿Está disponible?');
+      var msg = productMsg(p);
       return '<article class="card">' +
-        '<div class="art' + (p.imagen ? ' photo' : '') + '" style="--tint-bg:' + a.bg + ';--tint:' + a.c + '">' +
-          (p.imagen ? '<img src="' + esc(p.imagen) + '" alt="' + esc(p.nombre) + '" loading="lazy">' : a.svg) +
+        '<div class="art' + (p.imagen ? ' photo' : '') + '" style="--tint-bg:' + a.bg + ';--tint:' + a.c + '"' +
+          (p.imagen ? ' data-zoom="' + esc(p.id) + '" role="button" tabindex="0" aria-label="Ver foto grande de ' + esc(p.nombre) + '"' : '') + '>' +
+          (p.imagen ? '<img src="' + esc(p.imagen) + '" alt="' + esc(p.nombre) + '" loading="lazy">' +
+            '<span class="zoom-hint"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg></span>' : a.svg) +
           '<span class="badge ' + st.cls + '">' + st.label + '</span>' +
           (p.categoria ? '<span class="cat-tag">' + esc(p.categoria) + '</span>' : '') +
         '</div>' +
@@ -501,6 +545,48 @@
         filter();
       });
     }
+
+    /* ---------- Lightbox ---------- */
+    var lb = document.getElementById('lightbox');
+    var lastFocus = null;
+    function openLightbox(id) {
+      var p = allProducts.find(function (x) { return String(x.id) === String(id); });
+      if (!p || !p.imagen) { return; }
+      var st = stockInfo(p), fit = fitment(p), out = Number(p.stock_actual || 0) <= 0;
+      var img = document.getElementById('lbImg');
+      img.src = p.imagen;
+      img.alt = p.nombre;
+      document.getElementById('lbInfo').innerHTML =
+        '<span class="badge ' + st.cls + '" style="position:static;align-self:flex-start">' + st.label + '</span>' +
+        '<h3>' + esc(p.nombre) + '</h3>' +
+        '<div class="sku">' + esc(p.sku) + '</div>' +
+        (fit ? '<span class="fit" style="margin-top:0">🚗 ' + esc(fit) + '</span>' : '') +
+        (p.descripcion ? '<p class="desc" style="margin:0">' + esc(p.descripcion) + '</p>' : '') +
+        '<div class="price-row" style="margin:6px 0 4px"><div class="price"><small>Q</small>' + money(p.precio_venta) + '</div><div class="stock-n">' + st.n + '</div></div>' +
+        '<a class="btn-wa' + (out ? ' ghost' : '') + '" href="' + esc(waLink(productMsg(p))) + '" target="_blank" rel="noopener">' +
+          '<svg width="18" height="18"><use href="#i-wa"/></svg>' + (out ? 'Preguntar disponibilidad' : 'Pedir por WhatsApp') + '</a>';
+      lastFocus = document.activeElement;
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('lbClose').focus();
+    }
+    function closeLightbox() {
+      if (!lb.classList.contains('open')) { return; }
+      lb.classList.remove('open');
+      document.body.style.overflow = '';
+      if (lastFocus) { lastFocus.focus(); }
+    }
+    document.getElementById('productGrid').addEventListener('click', function (e) {
+      var z = e.target.closest('[data-zoom]');
+      if (z) { openLightbox(z.getAttribute('data-zoom')); }
+    });
+    document.getElementById('productGrid').addEventListener('keydown', function (e) {
+      var z = e.target.closest('[data-zoom]');
+      if (z && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLightbox(z.getAttribute('data-zoom')); }
+    });
+    document.getElementById('lbClose').addEventListener('click', closeLightbox);
+    lb.addEventListener('click', function (e) { if (e.target === lb) { closeLightbox(); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeLightbox(); } });
 
     document.getElementById('searchForm').addEventListener('submit', function (e) {
       e.preventDefault();
