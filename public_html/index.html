@@ -481,8 +481,61 @@
       <!-- ===== USUARIOS ===== -->
       <section id="module-usuarios" class="module-view d-none">
         <h1 class="h3 fw-bold mb-1">Usuarios</h1>
-        <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> crea usuarios para vendedores u operadores. La contraseña se guarda encriptada.</div>
-        <div class="card shadow-sm"><div class="card-body"><h2 class="h5">Crear usuario</h2><form id="userForm" class="row g-2"><div class="col-12 col-md-6"><input class="form-control" name="usuario" placeholder="Usuario" required></div><div class="col-12 col-md-6"><input class="form-control" name="email" type="email" placeholder="Correo" required></div><div class="col-12 col-md-6"><input class="form-control" name="nombre" placeholder="Nombre" required></div><div class="col-12 col-md-6"><input class="form-control" name="password" type="password" minlength="8" placeholder="Contraseña" required></div><div class="col-12"><select class="form-control" name="rol"><option value="VENDEDOR">Vendedor</option><option value="ADMINISTRADOR">Administrador</option></select></div><div class="col-12"><button class="btn btn-primary w-100" type="submit">Guardar usuario</button></div></form></div></div>
+        <div class="module-help p-3 rounded mb-3"><strong>Autoayuda:</strong> aquí ves quién tiene acceso al sistema y qué puede hacer. Desactiva a quien ya no trabaje contigo en lugar de compartir contraseñas. Las contraseñas se guardan encriptadas y nadie puede verlas.</div>
+
+        <div class="row g-3 mb-3" id="usersSummary"></div>
+
+        <div class="card shadow-sm mb-3"><div class="card-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h5 mb-0">Usuarios del sistema</h2>
+            <div class="d-flex gap-2 flex-wrap">
+              <input id="usersSearch" type="search" class="form-control form-control-sm" style="max-width:220px" placeholder="Buscar nombre, usuario o correo…">
+              <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#userCreateBox">+ Nuevo usuario</button>
+            </div>
+          </div>
+
+          <div class="collapse mb-3" id="userCreateBox">
+            <form id="userForm" class="row g-3 p-3 rounded border bg-light">
+              <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Nombre completo <span class="text-danger">*</span></label>
+                <input class="form-control" name="nombre" placeholder="Ej: Juan Pérez" required>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Correo <span class="text-danger">*</span></label>
+                <input class="form-control" name="email" type="email" placeholder="juan@correo.com" required>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Usuario para entrar <span class="text-danger">*</span></label>
+                <input class="form-control" name="usuario" placeholder="Ej: jperez" pattern="[A-Za-z0-9._\-]{3,60}" required autocomplete="off">
+                <div class="form-text">Sin espacios. Letras, números, punto o guion.</div>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
+                <input class="form-control" name="password" type="password" minlength="8" required autocomplete="new-password">
+                <div class="form-text">Mínimo 8 caracteres.</div>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Rol / permisos</label>
+                <select class="form-select" name="rol"><option value="VENDEDOR">Vendedor</option><option value="ADMINISTRADOR">Administrador</option></select>
+                <div class="form-text">Mira la tabla de permisos abajo.</div>
+              </div>
+              <div class="col-12"><button class="btn btn-primary w-100" type="submit">Crear usuario</button></div>
+            </form>
+          </div>
+
+          <div id="usersList" class="table-responsive"></div>
+        </div></div>
+
+        <div class="card shadow-sm"><div class="card-body">
+          <h2 class="h5">Permisos por rol</h2>
+          <p class="small text-muted mb-2">Cada usuario tiene un rol. El rol define qué módulos puede abrir.</p>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 text-center">
+              <thead class="table-light"><tr><th class="text-start">Módulo</th><th>👑 Administrador</th><th>🧑‍💼 Vendedor</th></tr></thead>
+              <tbody id="permsMatrix"></tbody>
+            </table>
+          </div>
+        </div></div>
       </section>
 
       <!-- ===== BANCOS ===== -->
@@ -716,6 +769,52 @@
     </main>
   </div>
 
+  <!-- Modal editar usuario -->
+  <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editUserModalLabel">Editar usuario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editUserForm" class="row g-3">
+            <input type="hidden" name="id">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Usuario para entrar</label>
+              <input class="form-control" name="usuario" disabled>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nombre completo</label>
+              <input class="form-control" name="nombre" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Correo</label>
+              <input class="form-control" name="email" type="email" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Rol / permisos</label>
+              <select class="form-select" name="rol"><option value="VENDEDOR">Vendedor</option><option value="ADMINISTRADOR">Administrador</option></select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Estado</label>
+              <select class="form-select" name="estado"><option value="ACTIVO">Activo (puede entrar)</option><option value="INACTIVO">Inactivo (bloqueado)</option></select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nueva contraseña</label>
+              <input class="form-control" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Déjalo vacío para no cambiarla">
+            </div>
+            <div id="editUserMsg" class="col-12 d-none"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" form="editUserForm" class="btn btn-primary" id="editUserSaveBtn">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal editar producto -->
   <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -910,6 +1009,6 @@
   <!-- Tesseract.js: OCR local en el navegador, sin API externa -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/app.js?v=23"></script>
+  <script src="assets/app.js?v=24"></script>
 </body>
 </html>

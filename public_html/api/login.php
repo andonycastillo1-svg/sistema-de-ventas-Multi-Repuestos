@@ -39,6 +39,12 @@ if (!password_verify($password, $user['password_hash'])) {
     json_response(['message' => 'Credenciales inválidas.', 'code' => 'PASSWORD_MISMATCH'], 401);
 }
 
+try {
+    $pdo->prepare('UPDATE usuarios SET ultimo_login_at = NOW() WHERE id = :id')->execute(['id' => $user['id']]);
+} catch (Throwable $e) {
+    // Columna opcional; el login no debe fallar por esto.
+}
+
 $payload = [
     'sub' => (int) $user['id'],
     'usuario' => $user['usuario'],

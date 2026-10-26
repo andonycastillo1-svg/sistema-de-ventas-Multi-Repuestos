@@ -505,6 +505,80 @@
       }).join('') + '</tbody></table>';
   }
 
+  /* -------- Usuarios y permisos -------- */
+  var usersCache = [];
+
+  function loadUsers() {
+    return apiFetch('api/usuarios.php').then(function (body) {
+      usersCache = body.usuarios || [];
+      renderUsers();
+      renderPermsMatrix();
+    }).catch(function (err) { showMessage('danger', err.message); });
+  }
+
+  function fmtDateTime(v) {
+    if (!v) { return '<span class="text-muted">Nunca</span>'; }
+    var d = new Date(String(v).replace(' ', 'T'));
+    if (isNaN(d)) { return escHtml(v); }
+    return d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) +
+      ' <span class="text-muted">' + d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }) + '</span>';
+  }
+
+  function renderUsers() {
+    var target = byId('usersList');
+    if (!target) { return; }
+    var total = usersCache.length;
+    var activos = usersCache.filter(function (u) { return u.estado === 'ACTIVO'; }).length;
+    var admins = usersCache.filter(function (u) { return u.rol === 'ADMINISTRADOR' && u.estado === 'ACTIVO'; }).length;
+    var tile = function (label, value, color) {
+      return '<div class="col-4"><div class="card shadow-sm border-0 border-start border-4 border-' + color + '"><div class="card-body py-2">' +
+        '<div class="small text-muted text-uppercase" style="font-size:.7rem">' + label + '</div><div class="fs-4 fw-bold">' + value + '</div></div></div></div>';
+    };
+    byId('usersSummary').innerHTML = tile('Usuarios', total, 'primary') + tile('Activos', activos, 'success') + tile('Administradores', admins, 'warning');
+
+    var q = (byId('usersSearch').value || '').toLowerCase().trim();
+    var list = usersCache.filter(function (u) {
+      return !q || [u.nombre, u.usuario, u.email].join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+    if (!list.length) {
+      target.innerHTML = '<div class="text-muted small">' + (q ? 'Sin coincidencias.' : 'No hay usuarios.') + '</div>';
+      return;
+    }
+    target.innerHTML = '<table class="table table-hover align-middle mb-0"><thead class="table-light"><tr>' +
+      '<th>Usuario</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead><tbody>' +
+      list.map(function (u) {
+        var isAdmin = u.rol === 'ADMINISTRADOR';
+        var activo = u.estado === 'ACTIVO';
+        var isMe = currentUser && String(currentUser.id) === String(u.id);
+        var initials = String(u.nombre || u.usuario || '?').split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('').toUpperCase();
+        return '<tr class="' + (activo ? '' : 'opacity-50') + '">' +
+          '<td><div class="d-flex align-items-center gap-2">' +
+            '<div class="rounded-circle d-grid fw-bold text-white flex-shrink-0" style="width:38px;height:38px;place-items:center;font-size:.85rem;background:' + (isAdmin ? '#fd4407' : '#0b2a52') + '">' + escHtml(initials) + '</div>' +
+            '<div><div class="fw-semibold">' + escHtml(u.nombre) + (isMe ? ' <span class="badge text-bg-info">Tú</span>' : '') + '</div>' +
+            '<div class="small text-muted">@' + escHtml(u.usuario) + ' · ' + escHtml(u.email) + '</div></div></div></td>' +
+          '<td>' + (isAdmin ? '<span class="badge text-bg-warning">👑 Administrador</span>' : '<span class="badge text-bg-secondary">🧑‍💼 Vendedor</span>') + '</td>' +
+          '<td>' + (activo ? '<span class="badge text-bg-success">Activo</span>' : '<span class="badge text-bg-danger">Inactivo</span>') + '</td>' +
+          '<td class="small text-nowrap">' + fmtDateTime(u.ultimo_login_at) + '</td>' +
+          '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary" data-user-edit="' + u.id + '">✏ Editar</button></td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  /* La matriz se arma desde el menú lateral para que siempre coincida con lo que cada rol ve */
+  function renderPermsMatrix() {
+    var tbody = byId('permsMatrix');
+    if (!tbody) { return; }
+    var yes = '<span class="text-success fw-bold">✔</span>';
+    var no = '<span class="text-danger">✕</span>';
+    var rows = Array.prototype.map.call(document.querySelectorAll('.sidebar-link[data-module]'), function (a) {
+      var adminOnly = !!a.closest('.sidebar-admin-item');
+      return '<tr><td class="text-start">' + escHtml(a.textContent.trim()) + '</td><td>' + yes + '</td><td>' + (adminOnly ? no : yes) + '</td></tr>';
+    });
+    rows.push('<tr><td class="text-start">Crear/editar productos, precios y fotos</td><td>' + yes + '</td><td>' + no + '</td></tr>');
+    rows.push('<tr><td class="text-start">Gestionar usuarios y permisos</td><td>' + yes + '</td><td>' + no + '</td></tr>');
+    tbody.innerHTML = rows.join('');
+  }
+
   /* -------- Fotos de productos -------- */
   var fotoTargetId = null;
 
@@ -1368,7 +1442,55 @@
       apiFetch('api/usuarios.php', { method: 'POST', body: JSON.stringify(formToObject(event.target)) }).then(function (body) {
         showMessage('success', body.message || 'Usuario creado.');
         event.target.reset();
+        var box = byId('userCreateBox');
+        if (box && box.classList.contains('show')) { bootstrap.Collapse.getOrCreateInstance(box).hide(); }
+        loadUsers();
       }).catch(function (error) { showMessage('danger', error.message); });
+    });
+
+    byId('usersSearch').addEventListener('input', function () { renderUsers(); });
+
+    byId('usersList').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-user-edit]');
+      if (!btn) { return; }
+      var u = usersCache.find(function (x) { return String(x.id) === btn.getAttribute('data-user-edit'); });
+      if (!u) { return; }
+      var f = byId('editUserForm');
+      f.reset();
+      f.elements.id.value = u.id;
+      f.elements.usuario.value = u.usuario;
+      f.elements.nombre.value = u.nombre;
+      f.elements.email.value = u.email;
+      f.elements.rol.value = u.rol === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'VENDEDOR';
+      f.elements.estado.value = u.estado === 'INACTIVO' ? 'INACTIVO' : 'ACTIVO';
+      var isMe = currentUser && String(currentUser.id) === String(u.id);
+      f.elements.rol.disabled = isMe;
+      f.elements.estado.disabled = isMe;
+      byId('editUserMsg').className = 'col-12 d-none';
+      bootstrap.Modal.getOrCreateInstance(byId('editUserModal')).show();
+    });
+
+    byId('editUserForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var f = event.target;
+      var payload = {
+        id: f.elements.id.value, nombre: f.elements.nombre.value, email: f.elements.email.value,
+        rol: f.elements.rol.value, estado: f.elements.estado.value, password: f.elements.password.value
+      };
+      var saveBtn = byId('editUserSaveBtn');
+      setBusy(saveBtn, true, 'Guardando...');
+      apiFetch('api/usuarios.php?_method=PUT', { method: 'POST', body: JSON.stringify(payload) })
+        .then(function (body) {
+          bootstrap.Modal.getInstance(byId('editUserModal')).hide();
+          showMessage('success', body.message || 'Usuario actualizado.');
+          loadUsers();
+        })
+        .catch(function (err) {
+          var m = byId('editUserMsg');
+          m.className = 'col-12 alert alert-danger mb-0';
+          m.textContent = err.message;
+        })
+        .finally(function () { setBusy(saveBtn, false); });
     });
 
     byId('bankForm').addEventListener('submit', function (event) {
@@ -1695,6 +1817,7 @@
         if (moduleName === 'inventario') { loadInventory().catch(function () {}); }
         if (moduleName === 'gastos')     { loadGastos(); }
         if (moduleName === 'cuentas')    { loadCuentas(); }
+        if (moduleName === 'usuarios')   { loadUsers(); }
         if (moduleName === 'fotos')      { loadProducts().then(renderFotos).catch(function (e) { showMessage('danger', e.message); }); }
       });
     });
